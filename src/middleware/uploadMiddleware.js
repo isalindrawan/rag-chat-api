@@ -1,38 +1,10 @@
 const multer = require("multer");
 const path = require("path");
-const fs = require("fs");
+const fs = require("fs").promises;
+const blobStorageService = require("../services/blobStorageService");
 
-// Determine upload directory based on environment
-const getUploadDir = () => {
-  if (process.env.VERCEL || process.env.NODE_ENV === "production") {
-    // Use Vercel's tmp directory for serverless environment
-    return "/tmp/uploads";
-  }
-  // Use local public/uploads for development
-  return path.join(process.cwd(), "public", "uploads");
-};
-
-// Ensure upload directory exists
-const ensureUploadDir = (uploadDir) => {
-  if (!fs.existsSync(uploadDir)) {
-    fs.mkdirSync(uploadDir, { recursive: true });
-  }
-};
-
-// Configure multer for file uploads
-const storage = multer.diskStorage({
-  destination: (req, file, cb) => {
-    const uploadDir = getUploadDir();
-    ensureUploadDir(uploadDir);
-    cb(null, uploadDir);
-  },
-  filename: (req, file, cb) => {
-    const uniqueSuffix = `${Date.now()}-${Math.round(Math.random() * 1e9)}`;
-    const ext = path.extname(file.originalname);
-    const name = path.basename(file.originalname, ext);
-    cb(null, `${name}-${uniqueSuffix}${ext}`);
-  },
-});
+// Configure multer to use memory storage for Vercel Blob integration
+const storage = multer.memoryStorage();
 
 // File filter for allowed types
 const fileFilter = (req, file, cb) => {
@@ -72,6 +44,65 @@ const upload = multer({
 const uploadSingle = upload.single("document");
 const uploadMultiple = upload.array("documents", 5);
 
+// Middleware to upload file to Vercel Blob Storage after multer processing
+const uploadToBlob = async (req, res, next) => {
+  try {
+    if (!req.file) {
+      return next();
+    }
+
+    // Check if blob storage is configured
+    if (!blobStorageService.isConfigured()) {
+      console.warn("Blob storage not configured, using local storage fallback");
+
+      // Save file locally for development
+      const timestamp = Date.now();
+      const extension = path.extname(req.file.originalname);
+      const baseName = path.basename(req.file.originalname, extension);
+      const filename = `${timestamp}-${baseName}${extension}`;
+      const uploadDir = path.join(__dirname, "../../public/uploads");
+      const filePath = path.join(uploadDir, filename);
+
+      // Ensure upload directory exists
+      await fs.mkdir(uploadDir, { recursive: true });
+
+      // Write file to disk
+      await fs.writeFile(filePath, req.file.buffer);
+
+      // Update req.file with local file info
+      req.file.filename = filename;
+      req.file.path = filePath;
+
+      console.log(`File saved locally: ${filePath}`);
+      return next();
+    }
+
+    // Upload file buffer to Vercel Blob
+    const blobResult = await blobStorageService.uploadFile(
+      req.file.buffer,
+      req.file.originalname,
+      req.file.mimetype,
+    );
+
+    // Add blob information to req.file for downstream processing
+    req.file.blobUrl = blobResult.url;
+    req.file.blobFilename = blobResult.filename;
+    req.file.filename = blobResult.filename; // For compatibility with existing code
+    req.file.path = blobResult.url; // Use blob URL as path
+    req.file.size = blobResult.size;
+
+    console.log(`File uploaded to blob storage: ${blobResult.url}`);
+    next();
+  } catch (error) {
+    console.error("Error uploading to blob storage:", error);
+    return res.status(500).json({
+      error: "Failed to upload file to storage",
+      details:
+        process.env.NODE_ENV === "development" ? error.message : undefined,
+    });
+  }
+};
+
 // Error handling middleware for upload errors
 const handleUploadError = (error, req, res, next) => {
   if (error instanceof multer.MulterError) {
@@ -106,7 +137,7 @@ module.exports = {
   upload,
   uploadSingle,
   uploadMultiple,
+  uploadToBlob,
   handleUploadError,
-  getUploadDir,
-  ensureUploadDir,
+  blobStorageService,
 };

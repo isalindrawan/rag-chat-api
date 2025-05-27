@@ -19,4 +19,11 @@ module.exports = {
   // Vercel specific configurations
   isProduction: process.env.NODE_ENV === "production",
   isVercel: !!process.env.VERCEL,
+
+  // Blob Storage Configuration
+  blobStorage: {
+    token: process.env.BLOB_READ_WRITE_TOKEN,
+    storeName: process.env.BLOB_STORE_NAME || "rag-chat-api-blob",
+    enabled: !!process.env.BLOB_READ_WRITE_TOKEN,
+  },
 };

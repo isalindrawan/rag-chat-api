@@ -1,8 +1,9 @@
 const path = require("path");
-const fs = require("fs").promises;
 const asyncHandler = require("../middleware/asyncHandler");
 const { formatResponse, formatError } = require("../utils/helpers");
 const documentProcessingService = require("../services/documentProcessingService");
+const blobStorageService = require("../services/blobStorageService");
+const documentStore = require("../services/documentStore");
 
 // @desc    Upload document
 // @route   POST /api/documents/upload
@@ -14,16 +15,22 @@ const uploadDocument = asyncHandler(async (req, res) => {
   }
 
   const { file } = req;
-  const documentId = file.filename.split(".")[0];
-  const filePath = path.join(__dirname, "../../public/uploads", file.filename);
+  const documentId = `doc_${Date.now()}`;
+
+  // Check if blob URL exists (uploaded to blob storage)
+  const isBlob = !!file.blobUrl;
+  const fileSource = isBlob
+    ? file.blobUrl
+    : path.join(__dirname, "../../public/uploads", file.filename);
 
   const fileInfo = {
     id: documentId,
     originalName: file.originalname,
-    filename: file.filename,
+    filename: file.filename || file.blobFilename,
     mimetype: file.mimetype,
     size: file.size,
-    path: `/uploads/${file.filename}`,
+    path: isBlob ? file.blobUrl : `/uploads/${file.filename}`,
+    storageType: isBlob ? "blob" : "local",
     uploadedAt: new Date().toISOString(),
   };
 
@@ -31,9 +38,10 @@ const uploadDocument = asyncHandler(async (req, res) => {
   try {
     const processingResult = await documentProcessingService.processDocument(
       documentId,
-      filePath,
+      fileSource,
       file.originalname,
       file.mimetype,
+      isBlob,
     );
 
     fileInfo.processed = true;
@@ -44,6 +52,9 @@ const uploadDocument = asyncHandler(async (req, res) => {
     fileInfo.processingError = error.message;
   }
 
+  // Store document metadata
+  documentStore.addDocument(fileInfo);
+
   res.status(201).json(formatResponse(fileInfo, "File uploaded successfully"));
 });
 
@@ -52,25 +63,7 @@ const uploadDocument = asyncHandler(async (req, res) => {
 // @access  Public
 const getDocuments = asyncHandler(async (req, res) => {
   try {
-    const uploadsDir = path.join(__dirname, "../../public/uploads");
-    const files = await fs.readdir(uploadsDir);
-
-    const documents = await Promise.all(
-      files.map(async (filename) => {
-        const filePath = path.join(uploadsDir, filename);
-        const stats = await fs.stat(filePath);
-
-        return {
-          id: filename.split(".")[0],
-          filename,
-          originalName: filename, // In a real app, you'd store this in a database
-          path: `/uploads/${filename}`,
-          size: stats.size,
-          uploadedAt: stats.birthtime.toISOString(),
-        };
-      }),
-    );
-
+    const documents = documentStore.getAllDocuments();
     res.json(formatResponse(documents, "Documents retrieved successfully"));
   } catch (error) {
     res.status(500).json(formatError(error));
@@ -84,30 +77,14 @@ const getDocument = asyncHandler(async (req, res) => {
   const { id } = req.params;
 
   try {
-    const uploadsDir = path.join(__dirname, "../../public/uploads");
-    const files = await fs.readdir(uploadsDir);
+    const document = documentStore.getDocument(id);
 
-    // Find file that starts with the provided ID
-    const file = files.find((filename) => filename.startsWith(id));
-
-    if (!file) {
+    if (!document) {
       res.status(404);
       throw new Error("Document not found");
     }
 
-    const filePath = path.join(uploadsDir, file);
-    const stats = await fs.stat(filePath);
-
-    const documentInfo = {
-      id,
-      filename: file,
-      originalName: file,
-      path: `/uploads/${file}`,
-      size: stats.size,
-      uploadedAt: stats.birthtime.toISOString(),
-    };
-
-    res.json(formatResponse(documentInfo, "Document retrieved successfully"));
+    res.json(formatResponse(document, "Document retrieved successfully"));
   } catch (error) {
     if (error.message === "Document not found") {
       res.status(404).json(formatError(error, 404));
@@ -124,22 +101,20 @@ const deleteDocument = asyncHandler(async (req, res) => {
   const { id } = req.params;
 
   try {
-    const uploadsDir = path.join(__dirname, "../../public/uploads");
-    const files = await fs.readdir(uploadsDir);
+    const document = await documentStore.deleteDocumentWithFile(id);
 
-    // Find file that starts with the provided ID
-    const file = files.find((filename) => filename.startsWith(id));
-
-    if (!file) {
-      res.status(404);
-      throw new Error("Document not found");
+    // Also remove from vector store
+    try {
+      await documentProcessingService.deleteDocumentFromVectorStore(id);
+    } catch (error) {
+      console.warn("Failed to delete from vector store:", error.message);
     }
 
-    const filePath = path.join(uploadsDir, file);
-    await fs.unlink(filePath);
-
     res.json(
-      formatResponse({ id, filename: file }, "Document deleted successfully"),
+      formatResponse(
+        { id, filename: document.filename },
+        "Document deleted successfully",
+      ),
     );
   } catch (error) {
     if (error.message === "Document not found") {
@@ -157,22 +132,37 @@ const downloadDocument = asyncHandler(async (req, res) => {
   const { id } = req.params;
 
   try {
-    const uploadsDir = path.join(__dirname, "../../public/uploads");
-    const files = await fs.readdir(uploadsDir);
+    const document = documentStore.getDocument(id);
 
-    // Find file that starts with the provided ID
-    const file = files.find((filename) => filename.startsWith(id));
-
-    if (!file) {
+    if (!document) {
       res.status(404);
       throw new Error("Document not found");
     }
 
-    const filePath = path.join(uploadsDir, file);
+    if (document.storageType === "blob") {
+      // For blob storage, redirect to the blob URL or stream the file
+      const fileBuffer = await blobStorageService.downloadFile(document.path);
 
-    // Set proper headers for file download
-    res.setHeader("Content-Disposition", `attachment; filename="${file}"`);
-    res.sendFile(filePath);
+      res.setHeader(
+        "Content-Disposition",
+        `attachment; filename="${document.originalName}"`,
+      );
+      res.setHeader("Content-Type", document.mimetype);
+      res.setHeader("Content-Length", fileBuffer.length);
+      res.send(fileBuffer);
+    } else {
+      // For local storage, send the file directly
+      const filePath = path.join(
+        __dirname,
+        "../../public/uploads",
+        document.filename,
+      );
+      res.setHeader(
+        "Content-Disposition",
+        `attachment; filename="${document.originalName}"`,
+      );
+      res.sendFile(filePath);
+    }
   } catch (error) {
     if (error.message === "Document not found") {
       res.status(404).json(formatError(error, 404));
@@ -219,7 +209,15 @@ const searchDocuments = asyncHandler(async (req, res) => {
 // @access  Public
 const getDocumentStats = asyncHandler(async (req, res) => {
   try {
-    const stats = await documentProcessingService.getDocumentStats();
+    const vectorStats = await documentProcessingService.getDocumentStats();
+    const storageStats = documentStore.getStorageStats();
+
+    const stats = {
+      vectorStore: vectorStats,
+      storage: storageStats,
+      blobStorageConfigured: blobStorageService.isConfigured(),
+    };
+
     res.json(
       formatResponse(stats, "Document statistics retrieved successfully"),
     );

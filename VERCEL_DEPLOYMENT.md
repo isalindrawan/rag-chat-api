@@ -15,6 +15,8 @@ This guide explains how to deploy the RAG Chat API to Vercel.
 3. **Prepare environment variables**:
    - `OPENAI_API_KEY` - Your OpenAI API key
    - `NODE_ENV` - Set to "production"
+   - `BLOB_READ_WRITE_TOKEN` - Your Vercel Blob Storage token (for file uploads)
+   - `BLOB_STORE_NAME` - Your blob store name (optional, defaults to "rag-chat-api-blob")
    - `CORS_ORIGIN` - Your frontend URL (optional)
    - `FRONTEND_URL` - Your frontend URL for CORS (optional)
 
@@ -34,6 +36,8 @@ In your Vercel dashboard or using CLI:
 # Using Vercel CLI
 vercel env add OPENAI_API_KEY
 vercel env add NODE_ENV production
+vercel env add BLOB_READ_WRITE_TOKEN
+vercel env add BLOB_STORE_NAME rag-chat-api-blob
 vercel env add CORS_ORIGIN https://your-frontend-domain.com
 ```
 
@@ -63,7 +67,27 @@ vercel --prod
 npm run deploy
 ```
 
-### 4. Test Local Development with Vercel
+### 4. Set up Vercel Blob Storage
+
+1. **Create Blob Storage**:
+
+   - Go to your Vercel project dashboard
+   - Navigate to the "Storage" tab
+   - Click "Create Database" → "Blob"
+   - Name your store (e.g., "rag-chat-api-blob")
+
+2. **Get Connection Token**:
+
+   - Copy the `BLOB_READ_WRITE_TOKEN` from the connection details
+   - Add it to your environment variables
+
+3. **Configure Environment**:
+   ```bash
+   vercel env add BLOB_READ_WRITE_TOKEN your_blob_token_here
+   vercel env add BLOB_STORE_NAME rag-chat-api-blob
+   ```
+
+### 5. Test Local Development with Vercel
 
 ```bash
 npm run vercel-dev
@@ -83,9 +107,10 @@ The project is configured with the following Vercel-specific files:
 
 1. **File Storage**:
 
-   - Uploaded files are stored in `/tmp` directory
-   - Files are ephemeral and will be lost between function invocations
-   - For production, consider using cloud storage (AWS S3, Cloudinary, etc.)
+   - **✅ SOLVED**: Now uses Vercel Blob Storage for persistent file storage
+   - Files are stored permanently in Vercel Blob Storage when `BLOB_READ_WRITE_TOKEN` is configured
+   - Falls back to ephemeral `/tmp` directory for local development
+   - **Setup Required**: Create Vercel Blob Storage and configure environment variables
 
 2. **Vector Store**:
 
@@ -115,9 +140,17 @@ The project is configured with the following Vercel-specific files:
    ```
 
 3. **Environment Variables**:
+
    ```bash
+   # Required
    OPENAI_API_KEY=your_openai_api_key
    NODE_ENV=production
+
+   # Vercel Blob Storage (Required for file uploads)
+   BLOB_READ_WRITE_TOKEN=your_vercel_blob_token
+   BLOB_STORE_NAME=rag-chat-api-blob
+
+   # Optional for enhanced functionality
    AWS_ACCESS_KEY_ID=your_aws_key
    AWS_SECRET_ACCESS_KEY=your_aws_secret
    PINECONE_API_KEY=your_pinecone_key

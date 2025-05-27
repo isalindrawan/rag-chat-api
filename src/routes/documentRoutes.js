@@ -2,6 +2,7 @@ const express = require("express");
 const documentController = require("../controllers/documentController");
 const {
   uploadSingle,
+  uploadToBlob,
   handleUploadError,
 } = require("../middleware/uploadMiddleware");
 
@@ -11,6 +12,7 @@ const router = express.Router();
 router.post(
   "/upload",
   uploadSingle,
+  uploadToBlob,
   handleUploadError,
   documentController.uploadDocument,
 );

@@ -4,6 +4,7 @@ const { OpenAIEmbeddings } = require("@langchain/openai");
 const { RecursiveCharacterTextSplitter } = require("langchain/text_splitter");
 const { MemoryVectorStore } = require("langchain/vectorstores/memory");
 const config = require("../config/config");
+const blobStorageService = require("./blobStorageService");
 
 class DocumentProcessingService {
   constructor() {
@@ -25,9 +26,17 @@ class DocumentProcessingService {
     return this.vectorStore;
   }
 
-  async extractTextFromFile(filePath, mimetype) {
+  async extractTextFromFile(fileSource, mimetype, isBlob = false) {
     try {
-      const buffer = await fs.readFile(filePath);
+      let buffer;
+
+      if (isBlob) {
+        // Download file from blob storage
+        buffer = await blobStorageService.downloadFile(fileSource);
+      } else {
+        // Read from local file system (for development)
+        buffer = await fs.readFile(fileSource);
+      }
 
       switch (mimetype) {
         case "application/pdf":
@@ -37,6 +46,12 @@ class DocumentProcessingService {
           return buffer.toString("utf-8");
         case "application/json":
           return JSON.stringify(JSON.parse(buffer.toString("utf-8")), null, 2);
+        case "text/csv":
+          return buffer.toString("utf-8");
+        case "application/msword":
+        case "application/vnd.openxmlformats-officedocument.wordprocessingml.document":
+          // For now, treat as plain text. Consider adding docx parsing library
+          return buffer.toString("utf-8");
         default:
           throw new Error(`Unsupported file type: ${mimetype}`);
       }
@@ -55,10 +70,16 @@ class DocumentProcessingService {
     }
   }
 
-  async processDocument(documentId, filePath, originalName, mimetype) {
+  async processDocument(
+    documentId,
+    fileSource,
+    originalName,
+    mimetype,
+    isBlob = false,
+  ) {
     try {
-      // Extract text from document
-      const text = await this.extractTextFromFile(filePath, mimetype);
+      // Extract text from document (handles both blob URLs and local file paths)
+      const text = await this.extractTextFromFile(fileSource, mimetype, isBlob);
 
       if (!text || text.trim().length === 0) {
         throw new Error("Document contains no extractable text");
