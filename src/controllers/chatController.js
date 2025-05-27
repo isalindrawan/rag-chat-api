@@ -16,6 +16,25 @@ const getChatSessions = asyncHandler(async (req, res) => {
 // @route   POST /api/chat
 // @access  Public
 const sendMessage = asyncHandler(async (req, res) => {
+  const { message, sessionId, useRAG = false } = req.body;
+
+  if (!message) {
+    res.status(400);
+    throw new Error('Message is required');
+  }
+
+  const response = await chatService.processMessage(message, sessionId, useRAG);
+
+  res.json({
+    success: true,
+    data: response,
+  });
+});
+
+// @desc    Send message with RAG (Retrieval-Augmented Generation)
+// @route   POST /api/chat/rag
+// @access  Public
+const sendRAGMessage = asyncHandler(async (req, res) => {
   const { message, sessionId } = req.body;
 
   if (!message) {
@@ -23,7 +42,7 @@ const sendMessage = asyncHandler(async (req, res) => {
     throw new Error('Message is required');
   }
 
-  const response = await chatService.processMessage(message, sessionId);
+  const response = await chatService.processMessage(message, sessionId, true);
 
   res.json({
     success: true,
@@ -61,6 +80,7 @@ const deleteChatSession = asyncHandler(async (req, res) => {
 module.exports = {
   getChatSessions,
   sendMessage,
+  sendRAGMessage,
   getChatSession,
   deleteChatSession,
 };

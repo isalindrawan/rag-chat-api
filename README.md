@@ -90,7 +90,16 @@ npm start
 - `GET /api/chat/:sessionId` - Get specific chat session (placeholder)
 - `DELETE /api/chat/:sessionId` - Delete chat session (placeholder)
 
-#### Example Request
+#### Document Management API
+
+- `POST /api/documents/upload` - Upload a document for RAG processing
+- `GET /api/documents` - Get all uploaded documents
+- `GET /api/documents/:id` - Get specific document information
+- `GET /api/documents/:id/download` - Download a document
+- `DELETE /api/documents/:id` - Delete a document
+- `GET /uploads/:filename` - Access uploaded files directly (static route)
+
+#### Example Chat Request
 
 ```bash
 curl -X POST http://localhost:3000/api/chat \
@@ -98,7 +107,14 @@ curl -X POST http://localhost:3000/api/chat \
   -d '{"message": "Hello, how can you help me?"}'
 ```
 
-#### Example Response
+#### Example Document Upload
+
+```bash
+curl -X POST http://localhost:3000/api/documents/upload \
+  -F "document=@your-document.pdf"
+```
+
+#### Example Chat Response
 
 ```json
 {

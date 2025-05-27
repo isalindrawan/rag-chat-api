@@ -1,7 +1,6 @@
 // Utility functions for the application
 
-const generateId = () =>
-  `${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
+const generateId = () => `${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
 
 const validateMessage = (message) => {
   if (!message || typeof message !== 'string') {
@@ -51,4 +50,3 @@ module.exports = {
   formatResponse,
   formatError,
 };
-

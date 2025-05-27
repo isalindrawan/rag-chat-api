@@ -23,4 +23,3 @@ class ChatSession {
 module.exports = {
   ChatSession,
 };
-

@@ -14,4 +14,3 @@ module.exports = {
     maxTokens: parseInt(process.env.OPENAI_MAX_TOKENS, 10) || 1000,
   },
 };
-
