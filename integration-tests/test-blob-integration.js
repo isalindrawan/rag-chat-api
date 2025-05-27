@@ -1,7 +1,7 @@
 const fs = require("fs").promises;
 const path = require("path");
-const blobStorageService = require("./src/services/blobStorageService");
-const documentProcessingService = require("./src/services/documentProcessingService");
+const blobStorageService = require("../src/services/blobStorageService");
+const documentProcessingService = require("../src/services/documentProcessingService");
 
 async function testBlobIntegration() {
   console.log("🧪 Testing Blob Storage Integration");

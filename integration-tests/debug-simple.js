@@ -1,6 +1,6 @@
 require("dotenv").config();
-const databaseService = require("./src/services/databaseService");
-const config = require("./src/config/config");
+const databaseService = require("../src/services/databaseService");
+const config = require("../src/config/config");
 
 async function debug() {
   try {

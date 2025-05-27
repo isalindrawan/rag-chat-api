@@ -7,8 +7,8 @@
 
 const fs = require("fs");
 const path = require("path");
-const documentProcessingService = require("./src/services/documentProcessingService");
-const databaseService = require("./src/services/databaseService");
+const documentProcessingService = require("../src/services/documentProcessingService");
+const databaseService = require("../src/services/databaseService");
 
 async function testNeonDbIntegration() {
   console.log("🚀 Testing Neon DB pgvector integration...");
@@ -52,7 +52,10 @@ This is a comprehensive test document for the Neon DB pgvector integration in th
 
 This document contains various topics to test the similarity search functionality including database integration, vector embeddings, and RAG functionality.`;
 
-    const testFilePath = path.join(__dirname, "temp-neon-test-doc.txt");
+    const testFilePath = path.join(
+      __dirname,
+      "../temp-files/temp-neon-test-doc.txt",
+    );
     fs.writeFileSync(testFilePath, testDoc);
 
     const result = await documentProcessingService.processDocument(

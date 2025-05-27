@@ -1,8 +1,8 @@
 #!/usr/bin/env node
 
 // Final verification script for blob storage integration
-const blobStorageService = require("./src/services/blobStorageService");
-const documentProcessingService = require("./src/services/documentProcessingService");
+const blobStorageService = require("../src/services/blobStorageService");
+const documentProcessingService = require("../src/services/documentProcessingService");
 const fs = require("fs").promises;
 
 async function verifyBlobIntegration() {

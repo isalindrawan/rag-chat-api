@@ -7,8 +7,8 @@
 // Load environment variables
 require("dotenv").config();
 
-const config = require("./src/config/config");
-const databaseService = require("./src/services/databaseService");
+const config = require("../src/config/config");
+const databaseService = require("../src/services/databaseService");
 
 async function debugDatabase() {
   console.log("🔍 Debugging Neon DB contents...");

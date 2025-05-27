@@ -1,230 +1,57 @@
-# RAG Chat API
+# Integration Tests
 
-A RESTful API backend built with Express.js v4, LangChain, and OpenAI for building RAG (Retrieval-Augmented Generation) chat applications.
+This directory contains all integration tests, debug scripts, and verification utilities.
 
-## Features
+## Test Files
 
-- 🚀 Express.js v4 with MVC architecture
-- 🤖 LangChain integration with OpenAI
-- 🛡️ Security middleware (Helmet, CORS, Rate limiting)
-- 📝 Structured logging with Morgan
-- 🔧 Environment-based configuration
-- 🗄️ **Neon DB with pgvector for persistent embeddings**
-- 💾 **Automatic fallback to in-memory storage**
-- 🧪 Jest testing setup
-- 📊 ESLint for code quality
-- 🗂️ Organized project structure
+### Integration Tests
 
-## Project Structure
+- **test-blob-integration.js** - Tests blob storage integration with Vercel Blob
+- **test-neon-integration.js** - Tests Neon database integration and pgvector functionality
+- **test-rag.js** - Tests the complete RAG (Retrieval Augmented Generation) pipeline
+- **test-upload-debug.js** - Debug utility for testing file uploads
 
-```
-src/
-├── app.js              # Main application entry point
-├── config/             # Configuration files
-│   └── config.js       # Environment configuration
-├── controllers/        # Route controllers (MVC)
-│   └── chatController.js
-├── middleware/         # Custom middleware
-│   ├── asyncHandler.js
-│   └── errorMiddleware.js
-├── models/             # Data models
-│   └── index.js
-├── routes/             # API routes
-│   ├── index.js
-│   └── chatRoutes.js
-├── services/           # Business logic layer
-│   └── chatService.js
-└── utils/              # Utility functions
-    └── helpers.js
-```
+### Debug Scripts
 
-## Getting Started
+- **debug-neon-db.js** - Debug script for Neon database connectivity and operations
+- **debug-simple.js** - Simple debug script for basic functionality testing
 
-### Prerequisites
+### Verification Scripts
 
-- Node.js >= 18.0.0
-- npm or yarn
-- OpenAI API key
+- **verify-blob-integration.js** - Verification script for blob storage functionality
 
-### Installation
+## Usage
 
-1. Clone the repository
-2. Install dependencies:
-
-   ```bash
-   npm install
-   ```
-
-3. Set up environment variables:
-   ```bash
-   cp .env.example .env
-   ```
-4. Edit `.env` file and add your OpenAI API key:
-   ```
-   OPENAI_API_KEY=your_openai_api_key_here
-   ```
-
-### Database Configuration
-
-The API supports two storage modes for document embeddings:
-
-#### 1. Memory Storage (Default)
-
-- No additional setup required
-- Documents are stored in memory and reset on server restart
-- Suitable for development and testing
-
-#### 2. Neon DB with pgvector (Recommended for Production)
-
-- Persistent storage that survives server restarts
-- Better performance with large document collections
-- Built-in pgvector extension for vector similarity search
-
-To enable Neon DB:
-
-1. Create a [Neon](https://neon.tech) account and project
-2. Add your database URL to `.env`:
-   ```bash
-   DATABASE_URL=postgresql://username:password@ep-xxx-xxx.us-east-2.aws.neon.tech/neondb?sslmode=require
-   ```
-3. Run the database setup script in your Neon console:
-   ```bash
-   # Copy and run the SQL from scripts/neon-setup.sql
-   ```
-4. Test the integration:
-   ```bash
-   npm run test:neon
-   ```
-
-**Note**: The API automatically falls back to memory storage if the database is unavailable.
-
-For detailed setup instructions, see [NEON_DB_INTEGRATION.md](./NEON_DB_INTEGRATION.md)
-
-### Running the Application
-
-Development mode:
+### Running Tests
 
 ```bash
-npm run dev
+# Test Neon database integration
+npm run test:neon
+
+# Test blob storage integration
+node integration-tests/test-blob-integration.js
+
+# Test complete RAG functionality
+node integration-tests/test-rag.js
+
+# Debug database connectivity
+node integration-tests/debug-neon-db.js
 ```
 
-Production mode:
+### Debug Scripts
+
+Use the debug scripts to troubleshoot specific components:
 
 ```bash
-npm start
+# Debug Neon database
+node integration-tests/debug-neon-db.js
+
+# Simple debug test
+node integration-tests/debug-simple.js
 ```
 
-### API Endpoints
+## Organization
 
-#### Health Check
-
-- `GET /health` - Server health status
-
-#### Chat API
-
-- `GET /api/` - API information
-- `POST /api/chat` - Send message and get AI response
-- `GET /api/chat` - Get all chat sessions (placeholder)
-- `GET /api/chat/:sessionId` - Get specific chat session (placeholder)
-- `DELETE /api/chat/:sessionId` - Delete chat session (placeholder)
-
-#### Document Management API
-
-- `POST /api/documents/upload` - Upload a document for RAG processing
-- `GET /api/documents` - Get all uploaded documents
-- `GET /api/documents/:id` - Get specific document information
-- `GET /api/documents/:id/download` - Download a document
-- `DELETE /api/documents/:id` - Delete a document
-- `GET /uploads/:filename` - Access uploaded files directly (static route)
-
-#### Example Chat Request
-
-```bash
-curl -X POST http://localhost:3000/api/chat \
-  -H "Content-Type: application/json" \
-  -d '{"message": "Hello, how can you help me?"}'
-```
-
-#### Example Document Upload
-
-```bash
-curl -X POST http://localhost:3000/api/documents/upload \
-  -F "document=@your-document.pdf"
-```
-
-#### Example Chat Response
-
-```json
-{
-  "success": true,
-  "data": {
-    "sessionId": "session_1716825600000_abc123def",
-    "userMessage": "Hello, how can you help me?",
-    "aiResponse": "Hello! I'm here to help you with any questions...",
-    "timestamp": "2024-05-27T12:00:00.000Z"
-  }
-}
-```
-
-## Configuration
-
-Environment variables:
-
-| Variable                  | Description             | Default                 |
-| ------------------------- | ----------------------- | ----------------------- |
-| `NODE_ENV`                | Environment mode        | `development`           |
-| `PORT`                    | Server port             | `3000`                  |
-| `OPENAI_API_KEY`          | OpenAI API key          | Required                |
-| `OPENAI_MODEL`            | OpenAI model            | `gpt-3.5-turbo`         |
-| `OPENAI_TEMPERATURE`      | Model temperature       | `0.7`                   |
-| `OPENAI_MAX_TOKENS`       | Max response tokens     | `1000`                  |
-| `CORS_ORIGIN`             | CORS origin             | `http://localhost:3000` |
-| `RATE_LIMIT_WINDOW_MS`    | Rate limit window       | `900000` (15 min)       |
-| `RATE_LIMIT_MAX_REQUESTS` | Max requests per window | `100`                   |
-
-## Testing
-
-Run tests:
-
-```bash
-npm test
-```
-
-## Linting
-
-Check code quality:
-
-```bash
-npm run lint
-```
-
-Fix linting issues:
-
-```bash
-npm run lint:fix
-```
-
-## Future Enhancements
-
-- [ ] Database integration (MongoDB/PostgreSQL)
-- [ ] User authentication and authorization
-- [ ] Document upload and processing for RAG
-- [ ] Vector database integration (Pinecone, Chroma)
-- [ ] Chat session persistence
-- [ ] WebSocket support for real-time chat
-- [ ] API documentation with Swagger
-- [ ] Docker containerization
-- [ ] CI/CD pipeline setup
-
-## Contributing
-
-1. Fork the repository
-2. Create a feature branch
-3. Make your changes
-4. Add tests for new features
-5. Run tests and linting
-6. Submit a pull request
-
-## License
-
-MIT License - see LICENSE file for details
+- **test-\*.js** - Integration test files
+- **debug-\*.js** - Debug and diagnostic scripts
+- **verify-\*.js** - Verification and validation scripts
