@@ -10,7 +10,13 @@ module.exports = {
   openai: {
     apiKey: process.env.OPENAI_API_KEY,
     model: process.env.OPENAI_MODEL || "gpt-3.5-turbo",
+    embeddingModel:
+      process.env.OPENAI_EMBEDDING_MODEL || "text-embedding-3-small",
     temperature: parseFloat(process.env.OPENAI_TEMPERATURE) || 0.7,
     maxTokens: parseInt(process.env.OPENAI_MAX_TOKENS, 10) || 1000,
   },
+
+  // Vercel specific configurations
+  isProduction: process.env.NODE_ENV === "production",
+  isVercel: !!process.env.VERCEL,
 };

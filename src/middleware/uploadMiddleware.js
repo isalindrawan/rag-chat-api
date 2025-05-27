@@ -1,92 +1,112 @@
 const multer = require("multer");
 const path = require("path");
-const { generateId } = require("../utils/helpers");
+const fs = require("fs");
 
-// Configure storage
+// Determine upload directory based on environment
+const getUploadDir = () => {
+  if (process.env.VERCEL || process.env.NODE_ENV === "production") {
+    // Use Vercel's tmp directory for serverless environment
+    return "/tmp/uploads";
+  }
+  // Use local public/uploads for development
+  return path.join(process.cwd(), "public", "uploads");
+};
+
+// Ensure upload directory exists
+const ensureUploadDir = (uploadDir) => {
+  if (!fs.existsSync(uploadDir)) {
+    fs.mkdirSync(uploadDir, { recursive: true });
+  }
+};
+
+// Configure multer for file uploads
 const storage = multer.diskStorage({
   destination: (req, file, cb) => {
-    cb(null, path.join(__dirname, "../../public/uploads"));
+    const uploadDir = getUploadDir();
+    ensureUploadDir(uploadDir);
+    cb(null, uploadDir);
   },
   filename: (req, file, cb) => {
-    // Generate unique filename with timestamp and random ID
-    const uniqueId = generateId();
-    const extension = path.extname(file.originalname);
-    const filename = `${uniqueId}${extension}`;
-    cb(null, filename);
+    const uniqueSuffix = `${Date.now()}-${Math.round(Math.random() * 1e9)}`;
+    const ext = path.extname(file.originalname);
+    const name = path.basename(file.originalname, ext);
+    cb(null, `${name}-${uniqueSuffix}${ext}`);
   },
 });
 
-// File filter to allow only specific file types
+// File filter for allowed types
 const fileFilter = (req, file, cb) => {
-  // Allowed file types for documents
   const allowedTypes = [
     "application/pdf",
-    "application/msword",
-    "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
     "text/plain",
     "text/markdown",
+    "application/msword",
+    "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
     "text/csv",
     "application/json",
-    "application/vnd.ms-excel",
-    "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
   ];
 
   if (allowedTypes.includes(file.mimetype)) {
     cb(null, true);
   } else {
-    cb(new Error("Invalid file type. Only documents are allowed."), false);
+    cb(
+      new Error(
+        "Invalid file type. Only PDF, TXT, MD, DOC, DOCX, CSV, and JSON files are allowed.",
+      ),
+      false,
+    );
   }
 };
 
 // Configure multer
 const upload = multer({
-  storage,
-  fileFilter,
+  storage: storage,
   limits: {
     fileSize: 10 * 1024 * 1024, // 10MB limit
+    files: 5, // Maximum 5 files per request
   },
+  fileFilter: fileFilter,
 });
 
-// Middleware for single file upload
+// Create specific upload middleware functions
 const uploadSingle = upload.single("document");
+const uploadMultiple = upload.array("documents", 5);
 
-// Error handling middleware for multer
-const handleUploadError = (err, req, res, next) => {
-  if (err instanceof multer.MulterError) {
-    if (err.code === "LIMIT_FILE_SIZE") {
+// Error handling middleware for upload errors
+const handleUploadError = (error, req, res, next) => {
+  if (error instanceof multer.MulterError) {
+    if (error.code === "LIMIT_FILE_SIZE") {
       return res.status(400).json({
-        success: false,
-        error: {
-          message: "File size too large. Maximum size is 10MB.",
-          statusCode: 400,
-        },
+        error: "File too large. Maximum size is 10MB.",
       });
     }
-    if (err.code === "LIMIT_UNEXPECTED_FILE") {
+    if (error.code === "LIMIT_FILE_COUNT") {
       return res.status(400).json({
-        success: false,
-        error: {
-          message: 'Unexpected field name. Use "document" as field name.',
-          statusCode: 400,
-        },
+        error: "Too many files. Maximum is 5 files.",
+      });
+    }
+    if (error.code === "LIMIT_UNEXPECTED_FILE") {
+      return res.status(400).json({
+        error:
+          "Unexpected file field. Use 'document' for single file or 'documents' for multiple.",
       });
     }
   }
 
-  if (err.message === "Invalid file type. Only documents are allowed.") {
+  if (error.message) {
     return res.status(400).json({
-      success: false,
-      error: {
-        message: err.message,
-        statusCode: 400,
-      },
+      error: error.message,
     });
   }
 
-  next(err);
+  next(error);
 };
 
 module.exports = {
+  upload,
   uploadSingle,
+  uploadMultiple,
   handleUploadError,
+  getUploadDir,
+  ensureUploadDir,
 };

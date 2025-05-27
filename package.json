@@ -2,10 +2,12 @@
   "name": "rag-chat-api",
   "version": "1.0.0",
   "description": "RAG Chat API backend using Express.js and LangChain with OpenAI",
-  "main": "src/server.js",
+  "main": "api/index.js",
   "scripts": {
     "start": "node src/server.js",
     "dev": "nodemon src/server.js",
+    "vercel-dev": "vercel dev",
+    "deploy": "vercel --prod",
     "test": "jest",
     "lint": "eslint src/",
     "lint:fix": "eslint src/ --fix",
