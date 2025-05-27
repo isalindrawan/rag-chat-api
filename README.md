@@ -9,6 +9,8 @@ A RESTful API backend built with Express.js v4, LangChain, and OpenAI for buildi
 - 🛡️ Security middleware (Helmet, CORS, Rate limiting)
 - 📝 Structured logging with Morgan
 - 🔧 Environment-based configuration
+- 🗄️ **Neon DB with pgvector for persistent embeddings**
+- 💾 **Automatic fallback to in-memory storage**
 - 🧪 Jest testing setup
 - 📊 ESLint for code quality
 - 🗂️ Organized project structure
@@ -61,6 +63,42 @@ src/
    ```
    OPENAI_API_KEY=your_openai_api_key_here
    ```
+
+### Database Configuration
+
+The API supports two storage modes for document embeddings:
+
+#### 1. Memory Storage (Default)
+
+- No additional setup required
+- Documents are stored in memory and reset on server restart
+- Suitable for development and testing
+
+#### 2. Neon DB with pgvector (Recommended for Production)
+
+- Persistent storage that survives server restarts
+- Better performance with large document collections
+- Built-in pgvector extension for vector similarity search
+
+To enable Neon DB:
+
+1. Create a [Neon](https://neon.tech) account and project
+2. Add your database URL to `.env`:
+   ```bash
+   DATABASE_URL=postgresql://username:password@ep-xxx-xxx.us-east-2.aws.neon.tech/neondb?sslmode=require
+   ```
+3. Run the database setup script in your Neon console:
+   ```bash
+   # Copy and run the SQL from scripts/neon-setup.sql
+   ```
+4. Test the integration:
+   ```bash
+   npm run test:neon
+   ```
+
+**Note**: The API automatically falls back to memory storage if the database is unavailable.
+
+For detailed setup instructions, see [NEON_DB_INTEGRATION.md](./NEON_DB_INTEGRATION.md)
 
 ### Running the Application
 

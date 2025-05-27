@@ -3,8 +3,10 @@ const pdf = require("pdf-parse");
 const { OpenAIEmbeddings } = require("@langchain/openai");
 const { RecursiveCharacterTextSplitter } = require("langchain/text_splitter");
 const { MemoryVectorStore } = require("langchain/vectorstores/memory");
+const { PGVectorStore } = require("@langchain/community/vectorstores/pgvector");
 const config = require("../config/config");
 const blobStorageService = require("./blobStorageService");
+const databaseService = require("./databaseService");
 
 class DocumentProcessingService {
   constructor() {
@@ -13,6 +15,7 @@ class DocumentProcessingService {
       modelName: config.openai.embeddingModel || "text-embedding-3-large",
     });
     this.vectorStore = null;
+    this.usingMemoryFallback = false;
     this.textSplitter = new RecursiveCharacterTextSplitter({
       chunkSize: 1000,
       chunkOverlap: 200,
@@ -20,9 +23,59 @@ class DocumentProcessingService {
   }
 
   async initializeVectorStore() {
-    if (!this.vectorStore) {
-      this.vectorStore = new MemoryVectorStore(this.embeddings);
+    if (this.vectorStore) {
+      return this.vectorStore;
     }
+
+    try {
+      // Try to initialize database connection first
+      await databaseService.initialize();
+
+      if (databaseService.isReady) {
+        // Use PGVectorStore if database is available
+        this.vectorStore = await PGVectorStore.initialize(this.embeddings, {
+          postgresConnectionOptions: config.database.url
+            ? {
+                connectionString: config.database.url,
+                ssl: config.database.ssl
+                  ? { rejectUnauthorized: false }
+                  : false,
+              }
+            : {
+                host: config.database.host,
+                port: config.database.port,
+                user: config.database.user,
+                password: config.database.password,
+                database: config.database.name,
+                ssl: config.database.ssl
+                  ? { rejectUnauthorized: false }
+                  : false,
+              },
+          tableName: config.database.vectorStore.tableName,
+          collectionName: config.database.vectorStore.collectionName,
+          collectionTableName: `${config.database.vectorStore.tableName}_collections`,
+        });
+        this.usingMemoryFallback = false;
+        console.log("✅ Using PostgreSQL vector store (pgvector)");
+      } else {
+        throw new Error("Database not ready");
+      }
+    } catch (error) {
+      console.log("⚠️  Failed to initialize pgvector store:", error.message);
+      console.log("🔄 Falling back to memory vector store");
+
+      // Fallback to memory vector store
+      this.vectorStore = new MemoryVectorStore(this.embeddings);
+      this.usingMemoryFallback = true;
+
+      if (config.database.vectorStore.useMemoryFallback) {
+        console.log("⚠️  Using memory fallback - Neon DB connection failed");
+        console.log("💡 Check your DATABASE_URL in .env file");
+      } else {
+        throw error;
+      }
+    }
+
     return this.vectorStore;
   }
 
@@ -111,7 +164,7 @@ class DocumentProcessingService {
       // Initialize vector store if not already done
       await this.initializeVectorStore();
 
-      // Add documents to vector store
+      // Add documents to vector store - LangChain will auto-generate IDs
       await this.vectorStore.addDocuments(documents);
 
       return {
@@ -162,26 +215,59 @@ class DocumentProcessingService {
         return {
           totalDocuments: 0,
           totalChunks: 0,
+          usingMemoryFallback: this.usingMemoryFallback,
+          vectorStoreType: this.usingMemoryFallback ? "Memory" : "PostgreSQL",
         };
       }
 
-      // Get all documents from vector store
-      const allDocs = await this.vectorStore.similaritySearch("", 1000);
+      if (this.usingMemoryFallback) {
+        // For memory vector store, get all documents
+        const allDocs = await this.vectorStore.similaritySearch("", 1000);
+        const uniqueDocuments = new Set(
+          allDocs.map((doc) => doc.metadata.documentId),
+        );
 
-      // Count unique documents
-      const uniqueDocuments = new Set(
-        allDocs.map((doc) => doc.metadata.documentId),
-      );
+        return {
+          totalDocuments: uniqueDocuments.size,
+          totalChunks: allDocs.length,
+          usingMemoryFallback: true,
+          vectorStoreType: "Memory",
+        };
+      } else {
+        // For PostgreSQL vector store, query the database directly
+        const client = await databaseService.getClient();
+        try {
+          const tableName = config.database.vectorStore.tableName;
 
-      return {
-        totalDocuments: uniqueDocuments.size,
-        totalChunks: allDocs.length,
-      };
+          // LangChain stores documents with collection_name = null and metadata contains documentId
+          // Query by checking the metadata JSON field for documentId
+          const result = await client.query(
+            `SELECT 
+              COUNT(DISTINCT (metadata->>'documentId')) as total_documents,
+              COUNT(*) as total_chunks
+            FROM ${tableName}
+            WHERE (collection_name IS NULL OR collection_name = $1)
+              AND metadata->>'documentId' IS NOT NULL`,
+            [config.database.vectorStore.collectionName],
+          );
+
+          return {
+            totalDocuments: parseInt(result.rows[0].total_documents, 10) || 0,
+            totalChunks: parseInt(result.rows[0].total_chunks, 10) || 0,
+            usingMemoryFallback: false,
+            vectorStoreType: "PostgreSQL",
+          };
+        } finally {
+          client.release();
+        }
+      }
     } catch (error) {
       console.error("Error getting document stats:", error);
       return {
         totalDocuments: 0,
         totalChunks: 0,
+        usingMemoryFallback: this.usingMemoryFallback,
+        vectorStoreType: this.usingMemoryFallback ? "Memory" : "PostgreSQL",
       };
     }
   }
@@ -192,14 +278,33 @@ class DocumentProcessingService {
         return { deletedChunks: 0 };
       }
 
-      // Note: MemoryVectorStore doesn't have a built-in delete method
-      // In a production environment, you'd use a persistent vector store with delete capabilities
-      // For now, we'll return a placeholder response
-      console.log(
-        `Would delete all chunks for document ${documentId} from vector store`,
-      );
+      if (this.usingMemoryFallback) {
+        // Memory vector store doesn't have delete method
+        console.log(
+          `Would delete all chunks for document ${documentId} from memory vector store`,
+        );
+        return { deletedChunks: 0 };
+      } else {
+        // For PostgreSQL vector store, delete from database
+        const client = await databaseService.getClient();
+        try {
+          const tableName = config.database.vectorStore.tableName;
+          // LangChain stores documents with metadata containing documentId
+          const result = await client.query(
+            `DELETE FROM ${tableName}
+            WHERE (collection_name IS NULL OR collection_name = $1) 
+              AND metadata->>'documentId' = $2`,
+            [config.database.vectorStore.collectionName, documentId],
+          );
 
-      return { deletedChunks: 0 };
+          console.log(
+            `Deleted ${result.rowCount} chunks for document ${documentId} from PostgreSQL`,
+          );
+          return { deletedChunks: result.rowCount };
+        } finally {
+          client.release();
+        }
+      }
     } catch (error) {
       console.error("Error deleting document from vector store:", error);
       throw new Error(
