@@ -281,23 +281,23 @@ The document upload system is designed to integrate seamlessly with RAG processi
 ```javascript
 const uploadDocument = async (file) => {
   const formData = new FormData();
-  formData.append('document', file);
+  formData.append("document", file);
 
   try {
-    const response = await fetch('/api/documents/upload', {
-      method: 'POST',
+    const response = await fetch("/api/documents/upload", {
+      method: "POST",
       body: formData,
     });
 
     const result = await response.json();
 
     if (result.success) {
-      console.log('Document uploaded:', result.data);
+      console.log("Document uploaded:", result.data);
     } else {
-      console.error('Upload failed:', result.error);
+      console.error("Upload failed:", result.error);
     }
   } catch (error) {
-    console.error('Upload error:', error);
+    console.error("Upload error:", error);
   }
 };
 ```
@@ -329,4 +329,3 @@ npm test
 - [ ] **Document Versioning**: Track document versions and changes
 - [ ] **Access Control**: User-based document permissions
 - [ ] **Document Search**: Full-text search across uploaded documents
-

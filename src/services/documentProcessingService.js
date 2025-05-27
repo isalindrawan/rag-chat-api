@@ -1,15 +1,15 @@
-const fs = require('fs').promises;
-const path = require('path');
-const pdf = require('pdf-parse');
-const { OpenAIEmbeddings } = require('@langchain/openai');
-const { RecursiveCharacterTextSplitter } = require('langchain/text_splitter');
-const { MemoryVectorStore } = require('langchain/vectorstores/memory');
-const config = require('../config/config');
+const fs = require("fs").promises;
+const pdf = require("pdf-parse");
+const { OpenAIEmbeddings } = require("@langchain/openai");
+const { RecursiveCharacterTextSplitter } = require("langchain/text_splitter");
+const { MemoryVectorStore } = require("langchain/vectorstores/memory");
+const config = require("../config/config");
 
 class DocumentProcessingService {
   constructor() {
     this.embeddings = new OpenAIEmbeddings({
       openAIApiKey: config.openai.apiKey,
+      modelName: config.openai.embeddingModel || "text-embedding-3-large",
     });
     this.vectorStore = null;
     this.textSplitter = new RecursiveCharacterTextSplitter({
@@ -30,18 +30,18 @@ class DocumentProcessingService {
       const buffer = await fs.readFile(filePath);
 
       switch (mimetype) {
-        case 'application/pdf':
+        case "application/pdf":
           return await this.extractTextFromPDF(buffer);
-        case 'text/plain':
-        case 'text/markdown':
-          return buffer.toString('utf-8');
-        case 'application/json':
-          return JSON.stringify(JSON.parse(buffer.toString('utf-8')), null, 2);
+        case "text/plain":
+        case "text/markdown":
+          return buffer.toString("utf-8");
+        case "application/json":
+          return JSON.stringify(JSON.parse(buffer.toString("utf-8")), null, 2);
         default:
           throw new Error(`Unsupported file type: ${mimetype}`);
       }
     } catch (error) {
-      console.error('Error extracting text from file:', error);
+      console.error("Error extracting text from file:", error);
       throw new Error(`Failed to extract text from file: ${error.message}`);
     }
   }
@@ -61,7 +61,7 @@ class DocumentProcessingService {
       const text = await this.extractTextFromFile(filePath, mimetype);
 
       if (!text || text.trim().length === 0) {
-        throw new Error('Document contains no extractable text');
+        throw new Error("Document contains no extractable text");
       }
 
       // Split text into chunks
@@ -92,7 +92,7 @@ class DocumentProcessingService {
         processedAt: new Date().toISOString(),
       };
     } catch (error) {
-      console.error('Error processing document:', error);
+      console.error("Error processing document:", error);
       throw new Error(`Failed to process document: ${error.message}`);
     }
   }
@@ -122,7 +122,7 @@ class DocumentProcessingService {
 
       return filteredResults;
     } catch (error) {
-      console.error('Error searching similar documents:', error);
+      console.error("Error searching similar documents:", error);
       throw new Error(`Failed to search documents: ${error.message}`);
     }
   }
@@ -137,7 +137,7 @@ class DocumentProcessingService {
       }
 
       // Get all documents from vector store
-      const allDocs = await this.vectorStore.similaritySearch('', 1000);
+      const allDocs = await this.vectorStore.similaritySearch("", 1000);
 
       // Count unique documents
       const uniqueDocuments = new Set(
@@ -149,7 +149,7 @@ class DocumentProcessingService {
         totalChunks: allDocs.length,
       };
     } catch (error) {
-      console.error('Error getting document stats:', error);
+      console.error("Error getting document stats:", error);
       return {
         totalDocuments: 0,
         totalChunks: 0,
@@ -172,7 +172,7 @@ class DocumentProcessingService {
 
       return { deletedChunks: 0 };
     } catch (error) {
-      console.error('Error deleting document from vector store:', error);
+      console.error("Error deleting document from vector store:", error);
       throw new Error(
         `Failed to delete document from vector store: ${error.message}`,
       );
@@ -181,4 +181,3 @@ class DocumentProcessingService {
 }
 
 module.exports = new DocumentProcessingService();
-

@@ -1,7 +1,7 @@
-const { ChatOpenAI } = require('@langchain/openai');
-const { HumanMessage, SystemMessage } = require('langchain/schema');
-const config = require('../config/config');
-const documentProcessingService = require('./documentProcessingService');
+const { ChatOpenAI } = require("@langchain/openai");
+const { HumanMessage, SystemMessage } = require("langchain/schema");
+const config = require("../config/config");
+const documentProcessingService = require("./documentProcessingService");
 
 class ChatService {
   constructor() {
@@ -16,8 +16,8 @@ class ChatService {
   async processMessage(message, sessionId = null, useRAG = false) {
     try {
       let systemContent =
-        'You are a helpful AI assistant. Provide accurate and helpful responses to user questions.';
-      let contextInfo = '';
+        "You are a helpful AI assistant. Provide accurate and helpful responses to user questions.";
+      let contextInfo = "";
 
       // If RAG is enabled, search for relevant documents
       if (useRAG) {
@@ -31,7 +31,7 @@ class ChatService {
           if (relevantDocs.length > 0) {
             const context = relevantDocs
               .map((doc, index) => `Context ${index + 1}:\n${doc.content}`)
-              .join('\n\n');
+              .join("\n\n");
 
             systemContent = `You are a helpful AI assistant with access to relevant documents. Use the following context to provide accurate and helpful responses. If the context doesn't contain relevant information for the user's question, you can still provide general assistance.
 
@@ -44,7 +44,7 @@ Please answer the user's question based on the provided context when relevant, b
           }
         } catch (ragError) {
           console.warn(
-            'RAG search failed, falling back to normal chat:',
+            "RAG search failed, falling back to normal chat:",
             ragError.message,
           );
         }
@@ -73,8 +73,8 @@ Please answer the user's question based on the provided context when relevant, b
 
       return result;
     } catch (error) {
-      console.error('Error processing message:', error);
-      throw new Error('Failed to process message');
+      console.error("Error processing message:", error);
+      throw new Error("Failed to process message");
     }
   }
 
@@ -96,4 +96,3 @@ Please answer the user's question based on the provided context when relevant, b
 }
 
 module.exports = new ChatService();
-

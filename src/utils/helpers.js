@@ -1,9 +1,10 @@
 // Utility functions for the application
 
-const generateId = () => `${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
+const generateId = () =>
+  `${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
 
 const validateMessage = (message) => {
-  if (!message || typeof message !== 'string') {
+  if (!message || typeof message !== "string") {
     return false;
   }
 
@@ -20,14 +21,14 @@ const validateMessage = (message) => {
 };
 
 const sanitizeInput = (input) => {
-  if (typeof input !== 'string') {
-    return '';
+  if (typeof input !== "string") {
+    return "";
   }
 
   return input.trim();
 };
 
-const formatResponse = (data, message = 'Success') => ({
+const formatResponse = (data, message = "Success") => ({
   success: true,
   message,
   data,
@@ -37,7 +38,7 @@ const formatResponse = (data, message = 'Success') => ({
 const formatError = (error, statusCode = 500) => ({
   success: false,
   error: {
-    message: error.message || 'Internal server error',
+    message: error.message || "Internal server error",
     statusCode,
   },
   timestamp: new Date().toISOString(),

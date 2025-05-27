@@ -27,18 +27,18 @@ class Document {
 
   // Get file extension
   getExtension() {
-    return this.filename.split('.').pop().toLowerCase();
+    return this.filename.split(".").pop().toLowerCase();
   }
 
   // Check if document is supported for RAG processing
   isSupportedForRAG() {
     const supportedTypes = [
-      'text/plain',
-      'application/pdf',
-      'application/msword',
-      'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
-      'text/markdown',
-      'application/json',
+      "text/plain",
+      "application/pdf",
+      "application/msword",
+      "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
+      "text/markdown",
+      "application/json",
     ];
     return supportedTypes.includes(this.mimetype);
   }
@@ -62,4 +62,3 @@ class Document {
 }
 
 module.exports = Document;
-

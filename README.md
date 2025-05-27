@@ -190,4 +190,3 @@ npm run lint:fix
 ## License
 
 MIT License - see LICENSE file for details
-

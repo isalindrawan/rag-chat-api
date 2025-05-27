@@ -73,12 +73,12 @@ CMD ["npm", "start"]
 ### docker-compose.yml
 
 ```yaml
-version: '3.8'
+version: "3.8"
 services:
   rag-chat-api:
     build: .
     ports:
-      - '3000:3000'
+      - "3000:3000"
     environment:
       - NODE_ENV=production
     env_file:
@@ -92,7 +92,7 @@ services:
   redis:
     image: redis:7-alpine
     ports:
-      - '6379:6379'
+      - "6379:6379"
 
   postgres:
     image: postgres:15-alpine
@@ -101,7 +101,7 @@ services:
       POSTGRES_USER: postgres
       POSTGRES_PASSWORD: password
     ports:
-      - '5432:5432'
+      - "5432:5432"
     volumes:
       - postgres_data:/var/lib/postgresql/data
 
@@ -145,12 +145,12 @@ Already implemented with compression middleware.
 
 ```javascript
 // Add input validation middleware
-const { body, validationResult } = require('express-validator');
+const { body, validationResult } = require("express-validator");
 
 const validateChatMessage = [
-  body('message').isLength({ min: 1, max: 5000 }).trim().escape(),
-  body('sessionId').optional().isAlphanumeric(),
-  body('useRAG').optional().isBoolean(),
+  body("message").isLength({ min: 1, max: 5000 }).trim().escape(),
+  body("sessionId").optional().isAlphanumeric(),
+  body("useRAG").optional().isBoolean(),
   (req, res, next) => {
     const errors = validationResult(req);
     if (!errors.isEmpty()) {
@@ -167,11 +167,11 @@ const validateChatMessage = [
 
 ```javascript
 // Add JWT middleware
-const jwt = require('jsonwebtoken');
+const jwt = require("jsonwebtoken");
 
 const authenticateToken = (req, res, next) => {
-  const authHeader = req.headers['authorization'];
-  const token = authHeader && authHeader.split(' ')[1];
+  const authHeader = req.headers["authorization"];
+  const token = authHeader && authHeader.split(" ")[1];
 
   if (!token) {
     return res.sendStatus(401);
@@ -191,9 +191,9 @@ const authenticateToken = (req, res, next) => {
 // Enhanced file validation
 const fileFilter = (req, file, cb) => {
   // Check file type
-  const allowedTypes = ['application/pdf', 'text/plain', 'application/json'];
+  const allowedTypes = ["application/pdf", "text/plain", "application/json"];
   if (!allowedTypes.includes(file.mimetype)) {
-    return cb(new Error('Invalid file type'), false);
+    return cb(new Error("Invalid file type"), false);
   }
 
   // Check file size (handled by multer limits)
@@ -201,13 +201,13 @@ const fileFilter = (req, file, cb) => {
 };
 
 // Virus scanning (with ClamAV)
-const NodeClam = require('clamscan');
+const NodeClam = require("clamscan");
 const clamscan = await new NodeClam().init();
 
 const scanFile = async (filePath) => {
   const { isInfected, file, viruses } = await clamscan.scanFile(filePath);
   if (isInfected) {
-    throw new Error(`File is infected: ${viruses.join(', ')}`);
+    throw new Error(`File is infected: ${viruses.join(", ")}`);
   }
 };
 ```
@@ -216,14 +216,14 @@ const scanFile = async (filePath) => {
 
 ```javascript
 // User-specific rate limiting
-const rateLimit = require('express-rate-limit');
+const rateLimit = require("express-rate-limit");
 
 const createRateLimiter = (windowMs, max) =>
   rateLimit({
     windowMs,
     max,
     keyGenerator: (req) => req.user?.id || req.ip,
-    message: 'Too many requests from this user/IP',
+    message: "Too many requests from this user/IP",
   });
 ```
 
@@ -233,36 +233,36 @@ const createRateLimiter = (windowMs, max) =>
 
 ```javascript
 // Add monitoring middleware
-const prometheus = require('prom-client');
+const prometheus = require("prom-client");
 
 const httpDuration = new prometheus.Histogram({
-  name: 'http_request_duration_seconds',
-  help: 'Duration of HTTP requests in seconds',
-  labelNames: ['method', 'route', 'status_code'],
+  name: "http_request_duration_seconds",
+  help: "Duration of HTTP requests in seconds",
+  labelNames: ["method", "route", "status_code"],
 });
 
 const httpRequestCounter = new prometheus.Counter({
-  name: 'http_requests_total',
-  help: 'Total number of HTTP requests',
-  labelNames: ['method', 'route', 'status_code'],
+  name: "http_requests_total",
+  help: "Total number of HTTP requests",
+  labelNames: ["method", "route", "status_code"],
 });
 ```
 
 ### 2. Structured Logging
 
 ```javascript
-const winston = require('winston');
+const winston = require("winston");
 
 const logger = winston.createLogger({
-  level: 'info',
+  level: "info",
   format: winston.format.combine(
     winston.format.timestamp(),
     winston.format.errors({ stack: true }),
     winston.format.json(),
   ),
   transports: [
-    new winston.transports.File({ filename: 'logs/error.log', level: 'error' }),
-    new winston.transports.File({ filename: 'logs/combined.log' }),
+    new winston.transports.File({ filename: "logs/error.log", level: "error" }),
+    new winston.transports.File({ filename: "logs/combined.log" }),
     new winston.transports.Console({
       format: winston.format.simple(),
     }),
@@ -277,15 +277,15 @@ const logger = winston.createLogger({
 ```javascript
 const healthCheck = async (req, res) => {
   const health = {
-    status: 'OK',
+    status: "OK",
     timestamp: new Date().toISOString(),
     uptime: process.uptime(),
     version: process.env.npm_package_version,
     checks: {
-      database: 'OK',
-      redis: 'OK',
-      openai: 'OK',
-      vectorStore: 'OK',
+      database: "OK",
+      redis: "OK",
+      openai: "OK",
+      vectorStore: "OK",
     },
   };
 
@@ -304,7 +304,7 @@ const healthCheck = async (req, res) => {
 
     res.json(health);
   } catch (error) {
-    health.status = 'ERROR';
+    health.status = "ERROR";
     health.error = error.message;
     res.status(503).json(health);
   }
@@ -388,4 +388,3 @@ const healthCheck = async (req, res) => {
 - Error rate tracking
 - Resource usage monitoring
 - User activity analytics
-

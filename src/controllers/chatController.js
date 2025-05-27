@@ -1,5 +1,5 @@
-const asyncHandler = require('../middleware/asyncHandler');
-const chatService = require('../services/chatService');
+const asyncHandler = require("../middleware/asyncHandler");
+const chatService = require("../services/chatService");
 
 // @desc    Get all chat sessions
 // @route   GET /api/chat
@@ -7,7 +7,7 @@ const chatService = require('../services/chatService');
 const getChatSessions = asyncHandler(async (req, res) => {
   // Placeholder implementation
   res.json({
-    message: 'Get chat sessions endpoint',
+    message: "Get chat sessions endpoint",
     sessions: [],
   });
 });
@@ -20,7 +20,7 @@ const sendMessage = asyncHandler(async (req, res) => {
 
   if (!message) {
     res.status(400);
-    throw new Error('Message is required');
+    throw new Error("Message is required");
   }
 
   const response = await chatService.processMessage(message, sessionId, useRAG);
@@ -39,7 +39,7 @@ const sendRAGMessage = asyncHandler(async (req, res) => {
 
   if (!message) {
     res.status(400);
-    throw new Error('Message is required');
+    throw new Error("Message is required");
   }
 
   const response = await chatService.processMessage(message, sessionId, true);
@@ -84,4 +84,3 @@ module.exports = {
   getChatSession,
   deleteChatSession,
 };
-

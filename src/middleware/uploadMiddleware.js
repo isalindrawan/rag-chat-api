@@ -1,11 +1,11 @@
-const multer = require('multer');
-const path = require('path');
-const { generateId } = require('../utils/helpers');
+const multer = require("multer");
+const path = require("path");
+const { generateId } = require("../utils/helpers");
 
 // Configure storage
 const storage = multer.diskStorage({
   destination: (req, file, cb) => {
-    cb(null, path.join(__dirname, '../../public/uploads'));
+    cb(null, path.join(__dirname, "../../public/uploads"));
   },
   filename: (req, file, cb) => {
     // Generate unique filename with timestamp and random ID
@@ -20,21 +20,21 @@ const storage = multer.diskStorage({
 const fileFilter = (req, file, cb) => {
   // Allowed file types for documents
   const allowedTypes = [
-    'application/pdf',
-    'application/msword',
-    'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
-    'text/plain',
-    'text/markdown',
-    'text/csv',
-    'application/json',
-    'application/vnd.ms-excel',
-    'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+    "application/pdf",
+    "application/msword",
+    "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
+    "text/plain",
+    "text/markdown",
+    "text/csv",
+    "application/json",
+    "application/vnd.ms-excel",
+    "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
   ];
 
   if (allowedTypes.includes(file.mimetype)) {
     cb(null, true);
   } else {
-    cb(new Error('Invalid file type. Only documents are allowed.'), false);
+    cb(new Error("Invalid file type. Only documents are allowed."), false);
   }
 };
 
@@ -48,21 +48,21 @@ const upload = multer({
 });
 
 // Middleware for single file upload
-const uploadSingle = upload.single('document');
+const uploadSingle = upload.single("document");
 
 // Error handling middleware for multer
 const handleUploadError = (err, req, res, next) => {
   if (err instanceof multer.MulterError) {
-    if (err.code === 'LIMIT_FILE_SIZE') {
+    if (err.code === "LIMIT_FILE_SIZE") {
       return res.status(400).json({
         success: false,
         error: {
-          message: 'File size too large. Maximum size is 10MB.',
+          message: "File size too large. Maximum size is 10MB.",
           statusCode: 400,
         },
       });
     }
-    if (err.code === 'LIMIT_UNEXPECTED_FILE') {
+    if (err.code === "LIMIT_UNEXPECTED_FILE") {
       return res.status(400).json({
         success: false,
         error: {
@@ -73,7 +73,7 @@ const handleUploadError = (err, req, res, next) => {
     }
   }
 
-  if (err.message === 'Invalid file type. Only documents are allowed.') {
+  if (err.message === "Invalid file type. Only documents are allowed.") {
     return res.status(400).json({
       success: false,
       error: {

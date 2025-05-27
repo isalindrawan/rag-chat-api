@@ -1,8 +1,8 @@
-const path = require('path');
-const fs = require('fs').promises;
-const asyncHandler = require('../middleware/asyncHandler');
-const { formatResponse, formatError } = require('../utils/helpers');
-const documentProcessingService = require('../services/documentProcessingService');
+const path = require("path");
+const fs = require("fs").promises;
+const asyncHandler = require("../middleware/asyncHandler");
+const { formatResponse, formatError } = require("../utils/helpers");
+const documentProcessingService = require("../services/documentProcessingService");
 
 // @desc    Upload document
 // @route   POST /api/documents/upload
@@ -10,12 +10,12 @@ const documentProcessingService = require('../services/documentProcessingService
 const uploadDocument = asyncHandler(async (req, res) => {
   if (!req.file) {
     res.status(400);
-    throw new Error('No file uploaded');
+    throw new Error("No file uploaded");
   }
 
   const { file } = req;
-  const documentId = file.filename.split('.')[0];
-  const filePath = path.join(__dirname, '../../public/uploads', file.filename);
+  const documentId = file.filename.split(".")[0];
+  const filePath = path.join(__dirname, "../../public/uploads", file.filename);
 
   const fileInfo = {
     id: documentId,
@@ -39,12 +39,12 @@ const uploadDocument = asyncHandler(async (req, res) => {
     fileInfo.processed = true;
     fileInfo.processing = processingResult;
   } catch (error) {
-    console.warn('Document processing failed:', error.message);
+    console.warn("Document processing failed:", error.message);
     fileInfo.processed = false;
     fileInfo.processingError = error.message;
   }
 
-  res.status(201).json(formatResponse(fileInfo, 'File uploaded successfully'));
+  res.status(201).json(formatResponse(fileInfo, "File uploaded successfully"));
 });
 
 // @desc    Get all uploaded documents
@@ -52,7 +52,7 @@ const uploadDocument = asyncHandler(async (req, res) => {
 // @access  Public
 const getDocuments = asyncHandler(async (req, res) => {
   try {
-    const uploadsDir = path.join(__dirname, '../../public/uploads');
+    const uploadsDir = path.join(__dirname, "../../public/uploads");
     const files = await fs.readdir(uploadsDir);
 
     const documents = await Promise.all(
@@ -61,7 +61,7 @@ const getDocuments = asyncHandler(async (req, res) => {
         const stats = await fs.stat(filePath);
 
         return {
-          id: filename.split('.')[0],
+          id: filename.split(".")[0],
           filename,
           originalName: filename, // In a real app, you'd store this in a database
           path: `/uploads/${filename}`,
@@ -71,7 +71,7 @@ const getDocuments = asyncHandler(async (req, res) => {
       }),
     );
 
-    res.json(formatResponse(documents, 'Documents retrieved successfully'));
+    res.json(formatResponse(documents, "Documents retrieved successfully"));
   } catch (error) {
     res.status(500).json(formatError(error));
   }
@@ -84,7 +84,7 @@ const getDocument = asyncHandler(async (req, res) => {
   const { id } = req.params;
 
   try {
-    const uploadsDir = path.join(__dirname, '../../public/uploads');
+    const uploadsDir = path.join(__dirname, "../../public/uploads");
     const files = await fs.readdir(uploadsDir);
 
     // Find file that starts with the provided ID
@@ -92,7 +92,7 @@ const getDocument = asyncHandler(async (req, res) => {
 
     if (!file) {
       res.status(404);
-      throw new Error('Document not found');
+      throw new Error("Document not found");
     }
 
     const filePath = path.join(uploadsDir, file);
@@ -107,9 +107,9 @@ const getDocument = asyncHandler(async (req, res) => {
       uploadedAt: stats.birthtime.toISOString(),
     };
 
-    res.json(formatResponse(documentInfo, 'Document retrieved successfully'));
+    res.json(formatResponse(documentInfo, "Document retrieved successfully"));
   } catch (error) {
-    if (error.message === 'Document not found') {
+    if (error.message === "Document not found") {
       res.status(404).json(formatError(error, 404));
     } else {
       res.status(500).json(formatError(error));
@@ -124,7 +124,7 @@ const deleteDocument = asyncHandler(async (req, res) => {
   const { id } = req.params;
 
   try {
-    const uploadsDir = path.join(__dirname, '../../public/uploads');
+    const uploadsDir = path.join(__dirname, "../../public/uploads");
     const files = await fs.readdir(uploadsDir);
 
     // Find file that starts with the provided ID
@@ -132,17 +132,17 @@ const deleteDocument = asyncHandler(async (req, res) => {
 
     if (!file) {
       res.status(404);
-      throw new Error('Document not found');
+      throw new Error("Document not found");
     }
 
     const filePath = path.join(uploadsDir, file);
     await fs.unlink(filePath);
 
     res.json(
-      formatResponse({ id, filename: file }, 'Document deleted successfully'),
+      formatResponse({ id, filename: file }, "Document deleted successfully"),
     );
   } catch (error) {
-    if (error.message === 'Document not found') {
+    if (error.message === "Document not found") {
       res.status(404).json(formatError(error, 404));
     } else {
       res.status(500).json(formatError(error));
@@ -157,7 +157,7 @@ const downloadDocument = asyncHandler(async (req, res) => {
   const { id } = req.params;
 
   try {
-    const uploadsDir = path.join(__dirname, '../../public/uploads');
+    const uploadsDir = path.join(__dirname, "../../public/uploads");
     const files = await fs.readdir(uploadsDir);
 
     // Find file that starts with the provided ID
@@ -165,16 +165,16 @@ const downloadDocument = asyncHandler(async (req, res) => {
 
     if (!file) {
       res.status(404);
-      throw new Error('Document not found');
+      throw new Error("Document not found");
     }
 
     const filePath = path.join(uploadsDir, file);
 
     // Set proper headers for file download
-    res.setHeader('Content-Disposition', `attachment; filename="${file}"`);
+    res.setHeader("Content-Disposition", `attachment; filename="${file}"`);
     res.sendFile(filePath);
   } catch (error) {
-    if (error.message === 'Document not found') {
+    if (error.message === "Document not found") {
       res.status(404).json(formatError(error, 404));
     } else {
       res.status(500).json(formatError(error));
@@ -188,9 +188,9 @@ const downloadDocument = asyncHandler(async (req, res) => {
 const searchDocuments = asyncHandler(async (req, res) => {
   const { query, k = 5, threshold = 0.7 } = req.body;
 
-  if (!query || typeof query !== 'string' || query.trim().length === 0) {
+  if (!query || typeof query !== "string" || query.trim().length === 0) {
     res.status(400);
-    throw new Error('Search query is required');
+    throw new Error("Search query is required");
   }
 
   try {
@@ -206,7 +206,7 @@ const searchDocuments = asyncHandler(async (req, res) => {
           results,
           total: results.length,
         },
-        'Search completed successfully',
+        "Search completed successfully",
       ),
     );
   } catch (error) {
@@ -221,7 +221,7 @@ const getDocumentStats = asyncHandler(async (req, res) => {
   try {
     const stats = await documentProcessingService.getDocumentStats();
     res.json(
-      formatResponse(stats, 'Document statistics retrieved successfully'),
+      formatResponse(stats, "Document statistics retrieved successfully"),
     );
   } catch (error) {
     res.status(500).json(formatError(error));
@@ -237,4 +237,3 @@ module.exports = {
   searchDocuments,
   getDocumentStats,
 };
-
