@@ -17,11 +17,19 @@ const uploadDocument = asyncHandler(async (req, res) => {
   const { file } = req;
   const documentId = `doc_${Date.now()}`;
 
-  // Check if blob URL exists (uploaded to blob storage)
-  const isBlob = !!file.blobUrl;
-  const fileSource = isBlob
-    ? file.blobUrl
-    : path.join(__dirname, "../../public/uploads", file.filename);
+  // Determine storage type and file source
+  const storageType = file.storageType || (file.blobUrl ? "blob" : "local");
+  const isBlob = storageType === "blob";
+
+  // Set correct file source based on storage type
+  let fileSource;
+  if (isBlob) {
+    fileSource = file.blobUrl;
+  } else {
+    // For local storage, use the full path that was set in upload middleware
+    fileSource =
+      file.path || path.join(__dirname, "../../public/uploads", file.filename);
+  }
 
   const fileInfo = {
     id: documentId,
@@ -30,12 +38,20 @@ const uploadDocument = asyncHandler(async (req, res) => {
     mimetype: file.mimetype,
     size: file.size,
     path: isBlob ? file.blobUrl : `/uploads/${file.filename}`,
-    storageType: isBlob ? "blob" : "local",
+    storageType: storageType,
     uploadedAt: new Date().toISOString(),
   };
 
   // Process document for RAG if it's a supported type
   try {
+    console.log("Processing document:", {
+      documentId,
+      fileSource,
+      originalName: file.originalname,
+      storageType,
+      isBlob,
+    });
+
     const processingResult = await documentProcessingService.processDocument(
       documentId,
       fileSource,

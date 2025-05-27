@@ -51,6 +51,13 @@ const uploadToBlob = async (req, res, next) => {
       return next();
     }
 
+    console.log("Upload middleware processing file:", {
+      originalname: req.file.originalname,
+      mimetype: req.file.mimetype,
+      size: req.file.size,
+      blobConfigured: blobStorageService.isConfigured(),
+    });
+
     // Check if blob storage is configured
     if (!blobStorageService.isConfigured()) {
       console.warn("Blob storage not configured, using local storage fallback");
@@ -72,12 +79,14 @@ const uploadToBlob = async (req, res, next) => {
       // Update req.file with local file info
       req.file.filename = filename;
       req.file.path = filePath;
+      req.file.storageType = "local"; // Explicitly mark as local storage
 
       console.log(`File saved locally: ${filePath}`);
       return next();
     }
 
     // Upload file buffer to Vercel Blob
+    console.log("Uploading to blob storage...");
     const blobResult = await blobStorageService.uploadFile(
       req.file.buffer,
       req.file.originalname,
@@ -90,6 +99,7 @@ const uploadToBlob = async (req, res, next) => {
     req.file.filename = blobResult.filename; // For compatibility with existing code
     req.file.path = blobResult.url; // Use blob URL as path
     req.file.size = blobResult.size;
+    req.file.storageType = "blob"; // Explicitly mark as blob storage
 
     console.log(`File uploaded to blob storage: ${blobResult.url}`);
     next();

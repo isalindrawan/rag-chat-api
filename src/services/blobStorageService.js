@@ -59,13 +59,25 @@ class BlobStorageService {
    */
   async downloadFile(blobUrl) {
     try {
+      console.log("Attempting to download file from blob storage:", blobUrl);
+
       const response = await fetch(blobUrl);
       if (!response.ok) {
+        console.error(
+          "Blob download failed:",
+          response.status,
+          response.statusText,
+        );
         throw new Error(`Failed to download file: ${response.statusText}`);
       }
 
       const arrayBuffer = await response.arrayBuffer();
-      return Buffer.from(arrayBuffer);
+      const buffer = Buffer.from(arrayBuffer);
+      console.log(
+        "Successfully downloaded file from blob storage, size:",
+        buffer.length,
+      );
+      return buffer;
     } catch (error) {
       console.error("Error downloading file from blob storage:", error);
       throw new Error(`Failed to download file: ${error.message}`);

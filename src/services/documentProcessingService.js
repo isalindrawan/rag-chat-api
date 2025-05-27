@@ -28,13 +28,21 @@ class DocumentProcessingService {
 
   async extractTextFromFile(fileSource, mimetype, isBlob = false) {
     try {
+      console.log("Extracting text from file:", {
+        fileSource,
+        mimetype,
+        isBlob,
+      });
+
       let buffer;
 
       if (isBlob) {
         // Download file from blob storage
+        console.log("Downloading from blob storage:", fileSource);
         buffer = await blobStorageService.downloadFile(fileSource);
       } else {
         // Read from local file system (for development)
+        console.log("Reading from local file system:", fileSource);
         buffer = await fs.readFile(fileSource);
       }
 

@@ -7,6 +7,7 @@ The Vercel Blob Storage integration for the RAG Chat API has been **successfully
 ## ✅ Completed Features
 
 ### 🎯 Core Integration
+
 - **Blob Storage Service**: Complete CRUD operations for Vercel Blob Storage
 - **Upload Middleware**: Enhanced with memory storage + blob upload capability
 - **Automatic Fallback**: Local storage when blob storage is not configured
@@ -14,6 +15,7 @@ The Vercel Blob Storage integration for the RAG Chat API has been **successfully
 - **Document Store**: In-memory storage with support for both storage types
 
 ### 🎯 File Upload Flow
+
 - **Memory Processing**: Files processed in memory using multer
 - **Storage Decision**: Automatic detection of blob storage availability
 - **Blob Upload**: Files uploaded to Vercel Blob Storage when configured
@@ -21,6 +23,7 @@ The Vercel Blob Storage integration for the RAG Chat API has been **successfully
 - **Metadata Tracking**: Storage type tracked for each document
 
 ### 🎯 Document Management
+
 - **Upload**: ✅ Working (tested with TXT and PDF files)
 - **Download**: ✅ Working (proper headers and file streaming)
 - **Delete**: ✅ Working (removes from appropriate storage)
@@ -29,6 +32,7 @@ The Vercel Blob Storage integration for the RAG Chat API has been **successfully
 - **Statistics**: ✅ Working (shows storage breakdown)
 
 ### 🎯 Configuration & Environment
+
 - **Environment Variables**: Added BLOB_READ_WRITE_TOKEN and BLOB_STORE_NAME
 - **Config Service**: Centralized blob storage configuration
 - **Auto-Detection**: Blob storage availability automatically detected
@@ -37,6 +41,7 @@ The Vercel Blob Storage integration for the RAG Chat API has been **successfully
 ## 🧪 Test Results
 
 ### Document Upload
+
 ```bash
 ✅ Text File Upload: Successfully uploaded and processed (2 chunks)
 ✅ PDF File Upload: Successfully uploaded and processed (755 chunks)
@@ -44,6 +49,7 @@ The Vercel Blob Storage integration for the RAG Chat API has been **successfully
 ```
 
 ### Document Operations
+
 ```bash
 ✅ Document Listing: Shows storage type and metadata
 ✅ Document Download: Proper file streaming with headers
@@ -52,8 +58,9 @@ The Vercel Blob Storage integration for the RAG Chat API has been **successfully
 ```
 
 ### Statistics & Monitoring
+
 ```bash
-✅ Storage Statistics: 
+✅ Storage Statistics:
    - Total: 2 documents, 2.6MB
    - Local: 2 documents (blob: 0)
    - Vector Store: 757 chunks
@@ -63,27 +70,33 @@ The Vercel Blob Storage integration for the RAG Chat API has been **successfully
 ## 📁 Key Files Created/Updated
 
 ### Services
+
 - `src/services/blobStorageService.js` - **NEW** - Complete blob storage operations
 - `src/services/documentStore.js` - **CREATED** - Document metadata storage
 - `src/services/documentProcessingService.js` - **UPDATED** - Blob support added
 
 ### Middleware
+
 - `src/middleware/uploadMiddleware.js` - **ENHANCED** - Memory storage + blob integration + local fallback
 
 ### Controllers
+
 - `src/controllers/documentController.js` - **UPDATED** - Blob storage support + enhanced stats
 
 ### Configuration
+
 - `src/config/config.js` - **UPDATED** - Blob storage configuration
 - `.env.vercel.example` - **UPDATED** - Added blob storage variables
 
 ### Documentation
+
 - `BLOB_STORAGE_GUIDE.md` - **NEW** - Comprehensive blob storage guide
 - `VERCEL_DEPLOYMENT.md` - **UPDATED** - Added blob storage setup instructions
 
 ## 🚀 Deployment Ready
 
 ### For Vercel Production
+
 1. **Create Vercel Blob Storage** in project dashboard
 2. **Set Environment Variables**:
    ```bash
@@ -93,12 +106,14 @@ The Vercel Blob Storage integration for the RAG Chat API has been **successfully
 3. **Deploy**: Files will automatically use blob storage
 
 ### For Local Development
+
 - **No Changes Required**: Automatically uses local storage fallback
 - **Optional**: Set blob token to test blob integration locally
 
 ## 🔄 Storage Flow
 
 ### With Blob Storage (Production)
+
 ```
 Upload → Memory → Blob Storage → Document Processing → Vector Store
 Download → Blob Storage → Stream to User
@@ -106,15 +121,17 @@ Delete → Remove from Blob Storage + Document Store
 ```
 
 ### Without Blob Storage (Development)
+
 ```
 Upload → Memory → Local Storage → Document Processing → Vector Store
-Download → Local File → Stream to User  
+Download → Local File → Stream to User
 Delete → Remove Local File + Document Store
 ```
 
 ## 📊 API Response Examples
 
 ### Upload Response
+
 ```json
 {
   "success": true,
@@ -126,7 +143,7 @@ Delete → Remove Local File + Document Store
     "mimetype": "text/plain",
     "size": 1034,
     "path": "/uploads/1748317112673-test-doc.txt",
-    "storageType": "local",  // or "blob"
+    "storageType": "local", // or "blob"
     "uploadedAt": "2025-05-27T03:38:32.675Z",
     "processed": true,
     "processing": {
@@ -140,6 +157,7 @@ Delete → Remove Local File + Document Store
 ```
 
 ### Statistics Response
+
 ```json
 {
   "success": true,
@@ -166,6 +184,7 @@ Delete → Remove Local File + Document Store
 The Vercel Blob Storage integration is **fully implemented, tested, and ready for production deployment**. The system gracefully handles both development (local storage) and production (blob storage) environments with automatic detection and fallback capabilities.
 
 ### Next Steps for Production:
+
 1. Create Vercel Blob Storage
 2. Configure environment variables
 3. Deploy to Vercel
