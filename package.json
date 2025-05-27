@@ -39,6 +39,7 @@
     "langchain-core": "^0.0.4",
     "morgan": "^1.10.0",
     "multer": "^2.0.0",
+    "node-fetch": "^3.3.2",
     "openai": "^4.20.1",
     "pdf-parse": "^1.1.1"
   },

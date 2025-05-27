@@ -17,18 +17,64 @@ const uploadDocument = asyncHandler(async (req, res) => {
   const { file } = req;
   const documentId = `doc_${Date.now()}`;
 
-  // Determine storage type and file source
+  // Determine storage type and file source with enhanced debugging
+  console.log("File object received:", {
+    originalname: file.originalname,
+    filename: file.filename,
+    blobUrl: file.blobUrl,
+    path: file.path,
+    storageType: file.storageType,
+    size: file.size,
+  });
+
   const storageType = file.storageType || (file.blobUrl ? "blob" : "local");
   const isBlob = storageType === "blob";
 
-  // Set correct file source based on storage type
+  console.log("Storage determination:", { storageType, isBlob });
+
+  // Enhanced file source determination with production safety checks
   let fileSource;
-  if (isBlob) {
+  let actualStorageType = storageType;
+
+  // Production safety check: if we're in a serverless environment and don't have a blob URL,
+  // but blob storage is configured, something went wrong
+  if (process.env.VERCEL && blobStorageService.isConfigured()) {
+    if (!file.blobUrl) {
+      console.error(
+        "CRITICAL: In Vercel environment with blob storage configured but no blobUrl",
+      );
+      res.status(500);
+      throw new Error(
+        "Storage error: File upload to blob storage failed in serverless environment",
+      );
+    }
     fileSource = file.blobUrl;
+    actualStorageType = "blob";
+  } else if (isBlob && file.blobUrl) {
+    fileSource = file.blobUrl;
+    console.log("Using blob URL as file source:", fileSource);
   } else {
     // For local storage, use the full path that was set in upload middleware
     fileSource =
       file.path || path.join(__dirname, "../../public/uploads", file.filename);
+    actualStorageType = "local";
+    console.log("Using local file path as file source:", fileSource);
+  }
+
+  console.log("Final file source determination:", {
+    fileSource,
+    actualStorageType,
+    isVercel: !!process.env.VERCEL,
+    blobConfigured: blobStorageService.isConfigured(),
+  });
+
+  // Additional safety check for blob storage
+  if (blobStorageService.isConfigured() && !file.blobUrl && !file.path) {
+    console.error("Blob storage is configured but file has no blobUrl or path");
+    res.status(500);
+    throw new Error(
+      "Storage configuration error: file not properly stored in blob storage",
+    );
   }
 
   const fileInfo = {
@@ -37,8 +83,9 @@ const uploadDocument = asyncHandler(async (req, res) => {
     filename: file.filename || file.blobFilename,
     mimetype: file.mimetype,
     size: file.size,
-    path: isBlob ? file.blobUrl : `/uploads/${file.filename}`,
-    storageType: storageType,
+    path:
+      actualStorageType === "blob" ? file.blobUrl : `/uploads/${file.filename}`,
+    storageType: actualStorageType,
     uploadedAt: new Date().toISOString(),
   };
 

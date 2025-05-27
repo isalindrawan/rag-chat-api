@@ -87,22 +87,63 @@ const uploadToBlob = async (req, res, next) => {
 
     // Upload file buffer to Vercel Blob
     console.log("Uploading to blob storage...");
-    const blobResult = await blobStorageService.uploadFile(
-      req.file.buffer,
-      req.file.originalname,
-      req.file.mimetype,
-    );
 
-    // Add blob information to req.file for downstream processing
-    req.file.blobUrl = blobResult.url;
-    req.file.blobFilename = blobResult.filename;
-    req.file.filename = blobResult.filename; // For compatibility with existing code
-    req.file.path = blobResult.url; // Use blob URL as path
-    req.file.size = blobResult.size;
-    req.file.storageType = "blob"; // Explicitly mark as blob storage
+    try {
+      const blobResult = await blobStorageService.uploadFile(
+        req.file.buffer,
+        req.file.originalname,
+        req.file.mimetype,
+      );
 
-    console.log(`File uploaded to blob storage: ${blobResult.url}`);
-    next();
+      // Verify blob upload was successful
+      if (!blobResult || !blobResult.url) {
+        throw new Error("Blob upload returned invalid result");
+      }
+
+      // Add blob information to req.file for downstream processing
+      req.file.blobUrl = blobResult.url;
+      req.file.blobFilename = blobResult.filename;
+      req.file.filename = blobResult.filename; // For compatibility with existing code
+      req.file.path = blobResult.url; // Use blob URL as path
+      req.file.size = blobResult.size;
+      req.file.storageType = "blob"; // Explicitly mark as blob storage
+
+      console.log(`File uploaded to blob storage: ${blobResult.url}`);
+      console.log("Blob storage upload successful, file object:", {
+        blobUrl: req.file.blobUrl,
+        filename: req.file.filename,
+        storageType: req.file.storageType,
+      });
+
+      return next();
+    } catch (blobError) {
+      console.error(
+        "Blob storage upload failed, falling back to local storage:",
+        blobError,
+      );
+
+      // Fallback to local storage
+      const timestamp = Date.now();
+      const extension = path.extname(req.file.originalname);
+      const baseName = path.basename(req.file.originalname, extension);
+      const filename = `${timestamp}-${baseName}${extension}`;
+      const uploadDir = path.join(__dirname, "../../public/uploads");
+      const filePath = path.join(uploadDir, filename);
+
+      // Ensure upload directory exists
+      await fs.mkdir(uploadDir, { recursive: true });
+
+      // Write file to disk
+      await fs.writeFile(filePath, req.file.buffer);
+
+      // Update req.file with local file info
+      req.file.filename = filename;
+      req.file.path = filePath;
+      req.file.storageType = "local"; // Explicitly mark as local storage
+
+      console.log(`File saved locally as fallback: ${filePath}`);
+      return next();
+    }
   } catch (error) {
     console.error("Error uploading to blob storage:", error);
     return res.status(500).json({
