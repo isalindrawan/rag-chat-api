@@ -9,9 +9,12 @@
     "vercel-dev": "vercel dev",
     "deploy": "vercel --prod",
     "test": "jest",
+    "test:watch": "jest --watch",
+    "test:coverage": "jest --coverage",
     "test:neon": "node integration-tests/test-neon-integration.js",
     "test:blob": "node integration-tests/test-blob-integration.js",
     "test:rag": "node integration-tests/test-rag.js",
+    "test:integration": "npm run test:neon && npm run test:blob && npm run test:rag",
     "debug:neon": "node integration-tests/debug-neon-db.js",
     "debug:simple": "node integration-tests/debug-simple.js",
     "verify:blob": "node integration-tests/verify-blob-integration.js",
@@ -19,7 +22,13 @@
     "lint": "eslint src/",
     "lint:fix": "eslint src/ --fix",
     "format": "prettier --write .",
-    "format:check": "prettier --check ."
+    "format:check": "prettier --check .",
+    "docker:build": "docker build -t rag-chat-api .",
+    "docker:run": "docker run -p 3000:3000 --env-file .env rag-chat-api",
+    "health": "curl -f http://localhost:3000/health || exit 1",
+    "clean": "rm -rf node_modules package-lock.json && npm install",
+    "security:audit": "npm audit --audit-level moderate",
+    "precommit": "npm run lint && npm run format:check && npm run test"
   },
   "keywords": [
     "express",

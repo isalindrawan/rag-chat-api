@@ -10,6 +10,7 @@ yarn-error.log*
 .env.development.local
 .env.test.local
 .env.production.local
+.env.vercel
 
 # Runtime data
 pids
@@ -70,3 +71,35 @@ jspm_packages/
 # OS
 .DS_Store
 Thumbs.db
+
+# Docker
+.dockerignore
+
+# Vercel
+.vercel
+
+# Editor temporary files
+*~
+.#*
+\#*#
+
+# Package managers
+package-lock.json.bak
+yarn.lock.bak
+
+# Runtime
+.pid
+
+# Monitoring
+newrelic_agent.log
+
+# SSL certificates
+*.pem
+*.key
+*.crt
+*.cert
+
+# Backup files
+*.bak
+*.backup
+*.old

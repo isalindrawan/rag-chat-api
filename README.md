@@ -1,104 +1,357 @@
-# File Organization Summary
+# RAG Chat API
 
-## ✅ Completed Organization
+A powerful Retrieval-Augmented Generation (RAG) API built with Express.js, LangChain, and OpenAI. This API enables document upload, processing, and intelligent question-answering with context-aware responses.
 
-The RAG Chat API project has been successfully reorganized with a clean, professional structure.
+## 🚀 Features
 
-### 📁 New Directory Structure
+- **Document Processing**: Upload and process various document formats (PDF, TXT, MD, JSON)
+- **Vector Storage**: Store document embeddings using PostgreSQL with pgvector
+- **RAG Chat**: Context-aware responses using retrieved document chunks
+- **Blob Storage**: Scalable file storage with Vercel Blob
+- **Rate Limiting**: Built-in API rate limiting for production use
+- **Auto-fallback**: Graceful degradation to memory storage if database unavailable
+- **Security**: Comprehensive security middleware and best practices
+
+## 🏗️ Architecture
 
 ```
-rag-chat-api/
-├── 📚 docs/                     # All documentation (12 files)
-├── 🧪 integration-tests/        # Integration tests & debug scripts (8 files)
-├── 📄 test-files/               # Test data files (4 files)
-├── 🛠️ temp-files/               # Temporary files directory
-├── 💻 src/                      # Source code (unchanged)
-├── 🧩 tests/                    # Unit tests (unchanged)
-├── 📜 scripts/                  # Setup scripts (unchanged)
-└── 🌐 api/                      # Vercel API routes (unchanged)
+┌─────────────────┐    ┌─────────────────┐    ┌─────────────────┐
+│   File Upload   │───▶│  Text Extraction │───▶│   Embedding     │
+│ (PDF,TXT,MD,JSON)│    │   & Chunking     │    │   Generation    │
+└─────────────────┘    └─────────────────┘    └─────────────────┘
+                                                         │
+┌─────────────────┐    ┌─────────────────┐              │
+│   RAG Response  │◀───│  Vector Search   │◀─────────────┘
+│   Generation    │    │   (pgvector)     │
+└─────────────────┘    └─────────────────┘
 ```
 
-### 📋 Files Moved
+## 📋 Table of Contents
 
-#### Documentation → `docs/`
+- [Quick Start](#-quick-start)
+- [Installation](#-installation)
+- [Configuration](#-configuration)
+- [API Reference](#-api-reference)
+- [Testing](#-testing)
+- [Deployment](#-deployment)
+- [Project Structure](#-project-structure)
+- [Contributing](#-contributing)
+- [Documentation](#-documentation)
 
-- ✅ README.md (main project docs)
-- ✅ All guide files (QUICK_START, PRODUCTION_GUIDE, etc.)
-- ✅ Integration completion notes
-- ✅ API documentation
-- ✅ Created INDEX.md for navigation
+## 🚀 Quick Start
 
-#### Integration Tests → `integration-tests/`
+### Prerequisites
 
-- ✅ test-neon-integration.js
-- ✅ test-blob-integration.js
-- ✅ test-rag.js
-- ✅ debug-neon-db.js
-- ✅ debug-simple.js
-- ✅ verify-blob-integration.js
-- ✅ test-upload-debug.js
-- ✅ Created README.md with usage instructions
+- Node.js >= 18.0.0
+- PostgreSQL database with pgvector extension (or use Neon)
+- OpenAI API key
+- Vercel Blob storage (optional, for production)
 
-#### Test Data → `test-files/`
+### 1. Clone and Install
 
-- ✅ test-doc.txt
-- ✅ test-doc-2.pdf
-- ✅ test.txt
-- ✅ Created README.md with file descriptions
+```bash
+git clone <repository-url>
+cd rag-chat-api
+npm install
+```
 
-### 🔧 Updated Configurations
+### 2. Environment Setup
 
-#### package.json Scripts
+Copy the environment template:
 
-```json
+```bash
+cp .env.vercel .env
+```
+
+Configure your `.env` file:
+
+```env
+# Required
+OPENAI_API_KEY=your_openai_api_key_here
+
+# Database (choose one)
+DATABASE_URL=postgresql://user:password@localhost:5432/ragchat
+# OR for Neon (recommended)
+DATABASE_URL=postgresql://user:password@ep-example.neon.tech/neondb?sslmode=require
+
+# Optional - for production file storage
+BLOB_READ_WRITE_TOKEN=your_vercel_blob_token
+```
+
+### 3. Database Setup
+
+**Option A: Using Neon (Recommended)**
+
+1. Create a [Neon](https://neon.tech) account
+2. Create a new database
+3. Run the setup script: `psql $DATABASE_URL -f scripts/neon-setup.sql`
+4. Update your `DATABASE_URL` in `.env`
+
+**Option B: Local PostgreSQL**
+
+```bash
+# Install PostgreSQL and pgvector extension
+sudo apt-get install postgresql postgresql-contrib
+sudo -u postgres psql -c "CREATE EXTENSION vector;"
+
+# Create database
+createdb ragchat
+psql ragchat -f scripts/neon-setup.sql
+```
+
+### 4. Start Development Server
+
+```bash
+npm run dev
+```
+
+Your API will be available at `http://localhost:3000`
+
+## 🔧 Installation
+
+### Development Setup
+
+```bash
+# Install dependencies
+npm install
+
+# Install development tools
+npm install -g nodemon
+
+# Setup pre-commit hooks (optional)
+npm run prepare
+```
+
+### Production Setup
+
+```bash
+# Install production dependencies only
+npm ci --production
+
+# Build and start
+npm start
+```
+
+## ⚙️ Configuration
+
+### Environment Variables
+
+| Variable                | Required | Description                            | Default        |
+| ----------------------- | -------- | -------------------------------------- | -------------- |
+| `OPENAI_API_KEY`        | Yes      | OpenAI API key for embeddings and chat | -              |
+| `DATABASE_URL`          | No       | PostgreSQL connection string           | Memory storage |
+| `BLOB_READ_WRITE_TOKEN` | No       | Vercel Blob storage token              | Local storage  |
+| `PORT`                  | No       | Server port                            | 3000           |
+| `NODE_ENV`              | No       | Environment mode                       | development    |
+| `RATE_LIMIT_WINDOW`     | No       | Rate limit window (minutes)            | 15             |
+| `RATE_LIMIT_MAX`        | No       | Max requests per window                | 100            |
+
+### Database Configuration
+
+The system supports multiple database configurations:
+
+- **Memory Storage**: Default fallback for development
+- **PostgreSQL + pgvector**: Recommended for production
+- **Neon**: Serverless PostgreSQL (recommended for deployment)
+
+## 📚 API Reference
+
+### Upload Document
+
+```bash
+POST /api/documents/upload
+Content-Type: multipart/form-data
+
+# Example
+curl -X POST http://localhost:3000/api/documents/upload \
+  -F "document=@example.pdf"
+```
+
+### Chat with Documents
+
+```bash
+POST /api/chat
+Content-Type: application/json
+
 {
-  "test:neon": "node integration-tests/test-neon-integration.js",
-  "test:blob": "node integration-tests/test-blob-integration.js",
-  "test:rag": "node integration-tests/test-rag.js",
-  "debug:neon": "node integration-tests/debug-neon-db.js",
-  "debug:simple": "node integration-tests/debug-simple.js",
-  "verify:blob": "node integration-tests/verify-blob-integration.js"
+  "message": "What is the main topic of the uploaded documents?",
+  "conversationId": "optional-conversation-id"
 }
 ```
 
-#### Fixed Import Paths
+### List Documents
 
-- ✅ Updated all require() statements in moved files
-- ✅ Changed `./src/` to `../src/` in integration tests
-- ✅ Updated temporary file paths to use `temp-files/`
+```bash
+GET /api/documents
+```
 
-### ✅ Verification Tests
+### Get Document Details
 
-All integration tests verified working:
+```bash
+GET /api/documents/:id
+```
 
-- ✅ `npm run test:neon` - Database integration ✓
-- ✅ `npm run test:blob` - Blob storage integration ✓
-- ✅ `npm run debug:simple` - Database debugging ✓
+For complete API documentation, see [docs/API_REFERENCE.md](docs/API_REFERENCE.md).
 
-### 📝 Documentation Added
+## 🧪 Testing
 
-Each directory now has a README.md explaining:
+### Run All Tests
 
-- Purpose and contents
-- Usage instructions
-- File organization
-- Examples
+```bash
+npm test
+```
 
-### 🎯 Benefits Achieved
+### Integration Tests
 
-1. **🧹 Clean Root Directory** - No scattered test/doc files
-2. **📖 Clear Navigation** - Easy to find specific file types
-3. **🔍 Better Discoverability** - README files guide users
-4. **⚡ Improved Workflow** - Organized structure for development
-5. **✅ Maintained Functionality** - All features work as before
+```bash
+# Test Neon database integration
+npm run test:neon
 
-### 🚀 Ready for Development
+# Test Vercel Blob integration
+npm run test:blob
 
-The project is now organized and ready for:
+# Test complete RAG workflow
+npm run test:rag
+```
 
-- Easy onboarding of new developers
-- Simplified maintenance and updates
-- Professional deployment
-- Scalable file structure
+### Debug Tools
 
-All functionality has been preserved and verified working!
+```bash
+# Debug database connection
+npm run debug:neon
+
+# Simple debug test
+npm run debug:simple
+
+# Verify blob storage
+npm run verify:blob
+```
+
+## 🚀 Deployment
+
+### Vercel (Recommended)
+
+1. **Install Vercel CLI**
+
+   ```bash
+   npm i -g vercel
+   ```
+
+2. **Deploy**
+
+   ```bash
+   vercel --prod
+   ```
+
+3. **Configure Environment**
+   - Set environment variables in Vercel dashboard
+   - Use Neon for database
+   - Enable Vercel Blob storage
+
+### Docker
+
+```bash
+# Build image
+docker build -t rag-chat-api .
+
+# Run container
+docker run -p 3000:3000 --env-file .env rag-chat-api
+```
+
+### Manual Deployment
+
+1. Set up PostgreSQL with pgvector extension
+2. Configure environment variables
+3. Run database migrations
+4. Start the application with `npm start`
+
+## 📁 Project Structure
+
+```
+rag-chat-api/
+├── api/                    # Vercel API routes
+├── docs/                   # Documentation
+│   ├── API_REFERENCE.md   # Complete API docs
+│   ├── FAQ.md             # Frequently asked questions
+│   └── README.md          # Documentation index
+├── integration-tests/      # Integration test suites
+├── scripts/               # Database and utility scripts
+├── src/                   # Source code
+│   ├── app.js            # Express app configuration
+│   ├── server.js         # Server entry point
+│   ├── config/           # Configuration files
+│   ├── controllers/      # Route controllers
+│   ├── middleware/       # Custom middleware
+│   ├── routes/           # API routes
+│   ├── services/         # Business logic
+│   └── utils/            # Utility functions
+├── tests/                 # Unit tests
+├── temp-files/           # Temporary file storage
+└── test-files/           # Test documents
+```
+
+## 🤝 Contributing
+
+We welcome contributions! Please see our [Contributing Guidelines](CONTRIBUTING.md) for details.
+
+### Quick Start for Contributors
+
+1. Fork the repository
+2. Create a feature branch: `git checkout -b feature/amazing-feature`
+3. Make your changes
+4. Add tests for new functionality
+5. Run tests: `npm test`
+6. Commit your changes: `git commit -m 'Add amazing feature'`
+7. Push to the branch: `git push origin feature/amazing-feature`
+8. Open a Pull Request
+
+## 📖 Documentation
+
+- **[Quick Setup Guide](QUICK_SETUP.md)** - Get started in 5 minutes
+- **[API Reference](docs/API_REFERENCE.md)** - Complete API documentation
+- **[FAQ](docs/FAQ.md)** - Frequently asked questions
+- **[Contributing](CONTRIBUTING.md)** - How to contribute
+- **[Security](SECURITY.md)** - Security policy and best practices
+- **[Changelog](CHANGELOG.md)** - Version history
+
+## 🔒 Security
+
+Security is a top priority. Please review our [Security Policy](SECURITY.md) for:
+
+- Vulnerability reporting procedures
+- Security best practices
+- Supported versions
+
+## 📄 License
+
+This project is licensed under the MIT License - see the [LICENSE](LICENSE) file for details.
+
+## 🆘 Support
+
+- **Documentation**: Check our [FAQ](docs/FAQ.md) for common questions
+- **Issues**: Open an issue on GitHub for bugs or feature requests
+- **Discussions**: Use GitHub Discussions for questions and community support
+
+## 🗺️ Roadmap
+
+### Current Version (1.0.0)
+
+- ✅ Core RAG functionality
+- ✅ PostgreSQL + pgvector support
+- ✅ OpenAI integration
+- ✅ Vercel Blob storage
+- ✅ Rate limiting and security
+
+### Planned Features
+
+- 🔄 Additional embedding providers (Hugging Face, Cohere)
+- 🔄 Support for more document formats (DOCX, RTF)
+- 🔄 Chat conversation persistence
+- 🔄 Document versioning
+- 🔄 Advanced search filters
+- 🔄 Batch document processing
+- 🔄 Analytics and monitoring dashboard
+
+---
+
+**Made with ❤️ for the developer community**
